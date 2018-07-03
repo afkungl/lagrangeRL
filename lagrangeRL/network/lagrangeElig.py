@@ -58,7 +58,7 @@ class lagrangeElig(networkBase.networkBase):
         # add eligibility trace
         self.eligibility = 0. * copy.deepcopy(self.W)
 
-    def saveTraces(booleanVar=True):
+    def saveTraces(self, booleanVar=True):
         """
             Save the time trace of the voltages and of the eligibility trace
         """
@@ -137,7 +137,7 @@ class lagrangeElig(networkBase.networkBase):
 
         # apply updates to the eligibility trace
         self.eligibility = self.eligibility + timeStep * WDiffNew
-        self.eligibility *= np.exp(-timestep/self.tauEligibility)
+        self.eligibility *= np.exp(-timeStep/self.tauEligibility)
         self.eligibility[self.maskIndex] = 0
         self.uDiff = uDiffNew
         self.T = self.T + timeStep
@@ -147,14 +147,25 @@ class lagrangeElig(networkBase.networkBase):
             self.uTraces.append(self.u)
             self.eligibilityTraces.append(self.eligibility[~self.W.mask])
 
-    def run(timeDifference):
+    def run(self, timeDifference):
         """
             run the simulation for the given time Difference
         """
 
         endSim = self.T + timeDifference
         while self.T < endSim:
-            self.Update()
+            self.Update(self.timeStep)
+
+    def getTraces(self):
+        """
+            Return the saved traces
+        """
+
+        elig = np.array(self.eligibilityTraces)
+        uMem = np.array(self.uTraces)
+
+        return {'uMem': uMem,
+                'eligibilities': elig}
 
 
 if __name__ == "__main__":
