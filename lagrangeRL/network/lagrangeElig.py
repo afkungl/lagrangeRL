@@ -167,6 +167,34 @@ class lagrangeElig(networkBase.networkBase):
         return {'uMem': uMem,
                 'eligibilities': elig}
 
+    def updateWeights(self, learningRate, modulator):
+        """
+            Update the weights according to a three factor learning rule.
+            Update = (eligibility trace) * (learning rate) * (modulator)
+
+            Keywords:
+                --- learningRate: the learning rate of the rule
+                --- modulator: the neuromodulatin signal
+        """
+        self.W = self.W + learningRate * modulator * self.eligibility
+        self.W[self.maskIndex] = 0
+
+    def calculateWeightUpdates(self, learningRate, modulator):
+        """
+            calcuate the suggested weight updates
+
+            Keywords:
+                --- learningRate: the learning rate of the rule
+                --- modulator: the neuromodulatin signal
+        """
+        return learningRate * modulator * self.eligibility
+
+    def applyWeightUpdates(self, deltaW):
+
+        self.W = self.W + deltaW
+        self.W[self.maskIndex] = 0
+
+
 
 if __name__ == "__main__":
     testClass = lagrangeElig()
