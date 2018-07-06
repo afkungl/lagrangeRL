@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Metaparameters
-layers = [1, 4, 4, 4]  # type: List[int]
+layers = [3, 4]  # type: List[int]
 N = np.sum(layers)
 tau = 10
 tauElig = 1.
@@ -15,7 +15,7 @@ simTime = 200
 timeStep = .1
 
 # Set up the network
-W = 1. * lagrangeRL.tools.networks.feedForwardWtaReadout(layers, .2)
+W = lagrangeRL.tools.networks.feedForwardWtaReadout(layers, .5)
 W.data[2,0] = 0.5
 W.data[2,1] = 0.5
 
@@ -32,7 +32,7 @@ simClass.setTauEligibility(tauElig)
 # connect to input and output
 value = np.ones(N)
 mask = np.zeros(N)
-mask[0] = 1
+mask[:3] = 1
 constInput = lagrangeRL.tools.inputModels.constantInput(
         							value,
         							mask)

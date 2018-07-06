@@ -176,8 +176,10 @@ class lagrangeElig(networkBase.networkBase):
                 --- learningRate: the learning rate of the rule
                 --- modulator: the neuromodulatin signal
         """
+        wDummy = copy.deepcopy(self.W)
         self.W = self.W + learningRate * modulator * self.eligibility
         self.W[self.maskIndex] = 0
+        self.W[self.wMaxFixed] = wDummy[self.wMaxFixed]
 
     def calculateWeightUpdates(self, learningRate, modulator):
         """
@@ -191,9 +193,15 @@ class lagrangeElig(networkBase.networkBase):
 
     def applyWeightUpdates(self, deltaW):
 
+        wDummy = copy.deepcopy(self.W)
         self.W = self.W + deltaW
         self.W[self.maskIndex] = 0
+        self.W[self.wMaxFixed] = wDummy[self.wMaxFixed]
 
+    def setFixedSynapseMask(self, fixedSynapses):
+        """ set a mask for the synapses which stay fixed during training """
+
+        self.wMaxFixed = fixedSynapses
 
 
 if __name__ == "__main__":

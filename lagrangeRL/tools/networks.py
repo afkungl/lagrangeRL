@@ -41,7 +41,7 @@ def feedForwardWtaReadout(layers, wtaStrength=1.):
 
     # get the number of neurons
     N = np.sum(layers)
-    W = 2.*(np.random.random((N, N)) - .5)
+    W = .2*(np.random.random((N, N)) - .5)
     WMask = np.ones((N, N))
 
     low = 0;
