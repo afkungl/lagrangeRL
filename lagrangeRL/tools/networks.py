@@ -31,7 +31,8 @@ def feedForward(layers):
 
     return WX
 
-def feedForwardWtaReadout(layers, wtaStrength=1.):
+def feedForwardWtaReadout(layers, wtaStrength=1., offset=0.,
+                          noiseMagnitude=1.):
     """
         Create a the connection matrix as a masked matrix of a feedforward network with a winner-take-all network in the last layer
 
@@ -41,7 +42,7 @@ def feedForwardWtaReadout(layers, wtaStrength=1.):
 
     # get the number of neurons
     N = np.sum(layers)
-    W = .2*(np.random.random((N, N)) - .5)
+    W = 2.*noiseMagnitude*(np.random.random((N, N)) - .5) + offset
     WMask = np.ones((N, N))
 
     low = 0;

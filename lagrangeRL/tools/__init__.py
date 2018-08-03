@@ -3,7 +3,9 @@ tools = ['networks',
 		 'targetModels',
 		 'activationFunctions',
 		 'dataHandler',
-		 'rewardSchemes']
+		 'rewardSchemes',
+		 'tfTools',
+		 'visualization']
 
 for tool in tools:
 	exec('from . import {}'.format(tool))

@@ -1,67 +1,78 @@
 import lagrangeRL
-from scipy.special import expit
 import numpy as np
+import copy
 import matplotlib.pyplot as plt
 import time
 
-# Metaparameters
-layers = [3, 4]  # type: List[int]
+########################
+# Set the metaparamters
+layers = [4, 4]
 N = np.sum(layers)
-tau = 10
+tau = 10.
 tauElig = 1.
 sigmaLog = 1.
-learningRate = 1.
-nudging = .1
-simTime = 100
+learningRate = .1
+nudging = .3 
+simTime = 75.
 timeStep = .1
+labels = [0,1]
+gammaReward = .2
+Niter = 1000 #training iterations
+dataSet = 'dataset.txt'
+trueReward = 1.
+falseReward = -1.
 
-# Set up the network
-W = lagrangeRL.tools.networks.feedForwardWtaReadout(layers, .5)
-W.data[2,0] = 0.5
-W.data[2,1] = 0.5
+#######################
+# Set up the components of the system
 
+# Set up the network structure
+W = lagrangeRL.tools.networks.feedForwardWtaReadout(layers, .4)
+print(W)
 
-# Set up the simulation class
-simClass = lagrangeRL.network.lagrangeElig()
+# Lagrange network
+simClass = lagrangeRL.network.lagrangeEligTf()
 simClass.setLearningRate(learningRate)
 simClass.setTimeStep(timeStep)
 simClass.setTau(tau)
 simClass.setNudging(nudging)
 simClass.addMatrix(W)
 simClass.setTauEligibility(tauElig)
+simClass.saveTraces(True)
+wMaxFixed = np.zeros((N,N))
+wMaxFixed[-layers[-1]:, -layers[-1]:] = 1
+simClass.setFixedSynapseMask(wMaxFixed.astype(bool))
 
-# connect to input and output
+# connect to input
 value = np.ones(N)
 mask = np.zeros(N)
-mask[:3] = 1
+mask[:4] = 1.
 constInput = lagrangeRL.tools.inputModels.constantInput(
         							value,
         							mask)
 simClass.connectInput(constInput)
-value = np.ones(N)
+
+# Connect to target
+value = 1. * np.ones(N)
 mask = np.zeros(N)
-mask[N-1] = 1
+mask[N-1] = 1.
 target = lagrangeRL.tools.targetModels.constantTarget(
         							value,
         							mask)
 simClass.connectTarget(target)
-actFunc = lagrangeRL.tools.activationFunctions.sigmoid(sigmaLog)
+
+# Connect to activation function
+actFunc = lagrangeRL.tools.activationFunctions.sigmoidTf(sigmaLog)
 simClass.connectActivationFunction(actFunc)
 
-# Initialize the simulation
-simClass.setInitialConditions(np.zeros(N))
-simClass.initSimulation()
+# Initialize the stuff
+simClass.initCompGraph()
 
-# save the traces
-simClass.saveTraces(True)
 
-# Run the simulation for 100 units
+# run the simulation
 start = time.time()
-simClass.run(simTime)
+simClass.run(100.)
 stop = time.time()
 print("The elapsed time for the run command is: {0:.2f} s".format(stop-start))
-print("Simulation run successfully")
-print("Output in the last layer: {}".format(simClass.u[-4:]))
 
 # make figures
 traces = simClass.getTraces()
