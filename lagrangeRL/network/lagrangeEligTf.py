@@ -138,7 +138,7 @@ class lagrangeEligTf(networkBase.networkBase):
 
         # an example input mask is needed to build the comp graph
         inputMask = self.input.getInput(0.)[2] 
-        nFree = len(np.where(inputMask == 0)[0])
+        nInput = len(np.where(inputMask == 1)[0])
         nFull = len(inputMask)
 
         ## Start the calculations
@@ -146,6 +146,16 @@ class lagrangeEligTf(networkBase.networkBase):
         dependencies.append(tf.assign(self.rho, self.actFunc(self.u)))
         dependencies.append(tf.assign(self.rhoPrime, self.actFuncPrime(self.u)))
         dependencies.append(tf.assign(self.rhoPrimePrime, self.actFuncPrimePrime(self.u)))
+
+        # set the membrane potential on the input neurons
+        dependencies.append(tf.scatter_update(self.u,
+        									  np.arange(nInput),
+        									  tf.slice(self.inputTf,
+        									  		  [0],
+        									  		  [nInput]
+        									  		  )
+        									  )
+        					)
 
         with tf.control_dependencies(dependencies):
             # Intermediate nodes for the vector
@@ -168,8 +178,8 @@ class lagrangeEligTf(networkBase.networkBase):
         # Look at the dynamics of the free neurons only
         inputVector = self.inputPrimeTf * self.inputMaskTf
         yNew = y - tfTools.tf_mat_vec_dot(A,inputVector)
-        yRed = tf.slice(y, [nFree], [-1])
-        Ared = tf.slice(A, [nFree, nFree], [-1, -1])
+        yRed = tf.slice(y, [nInput], [-1])
+        Ared = tf.slice(A, [nInput, nInput], [-1, -1])
 
 
         # Calculate the update step for the membrane potentials
@@ -181,7 +191,7 @@ class lagrangeEligTf(networkBase.networkBase):
             self.eligibilityDiff = self.learningRate * tfTools.tf_outer_product(self.u - tfTools.tf_mat_vec_dot(self.tfWnoWta, self.rho), self.rho)
 
             # Apply membrane potentials
-            self.applyMembranePot = tf.scatter_update(self.u, np.arange(nFree, nFull), tf.slice(self.u, [nFree], [-1]) + self.timeStep * self.uDiff)
+            self.applyMembranePot = tf.scatter_update(self.u, np.arange(nInput, nFull), tf.slice(self.u, [nInput], [-1]) + self.timeStep * self.uDiff)
 
             # Apply eligibility trace
             dependencies.append(self.eligibility.assign(self.eligibility + self.timeStep * self.eligibilityDiff))

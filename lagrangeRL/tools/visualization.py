@@ -106,11 +106,13 @@ def plotReport(figName,
     # Add target marker to the plot
     h = np.max(outputRho)/2.
     axOutputRho.scatter(target, h, marker='x', s=100, zorder=2)
+    hwinner = np.max(outputRho) * .75
+    axOutputRho.scatter(np.argmax(outputRho) + 1, hwinner, marker='D', s=100, zorder=2)
 
     # print the data
     im = np.reshape(data, figSize)
     show_axis(axData)
-    axData.imshow(im, cmap='inferno',
+    axData.imshow(im, cmap='bwr',
                   aspect=1., interpolation='nearest')
     axData.set_xticks([], [])
     axData.set_yticks([], [])
@@ -119,7 +121,7 @@ def plotReport(figName,
     # plot the current weights
     show_axis(axCurrentW)
     maxAbs = np.max(np.abs(wCurrent))
-    imAx = axCurrentW.imshow(wCurrent, cmap='inferno',
+    imAx = axCurrentW.imshow(wCurrent, cmap='bwr',
                   aspect=1, interpolation='nearest',
                   vmin=-1.*maxAbs, vmax=maxAbs)
     cax = inset_axes(axCurrentW,
@@ -139,7 +141,7 @@ def plotReport(figName,
     # plot the final eligibility traces
     show_axis(axDeltaW)
     maxAbs = np.max(np.abs(eligs))
-    imAx = axDeltaW.imshow(eligs, cmap='inferno',
+    imAx = axDeltaW.imshow(eligs, cmap='bwr',
                   aspect=1, interpolation='nearest',
                   vmin=-1.*maxAbs, vmax=maxAbs)
     cax = inset_axes(axDeltaW,
@@ -158,7 +160,7 @@ def plotReport(figName,
 
     # plot the sign of the appplied weight chages
     show_axis(axDeltaWSign)
-    imAxSign = axDeltaWSign.imshow(signDeltaW, cmap='inferno',
+    imAxSign = axDeltaWSign.imshow(signDeltaW, cmap='bwr',
                   aspect=1, interpolation='nearest',
                   vmin=-1., vmax=1.)
     caxSign = inset_axes(axDeltaWSign,
@@ -180,6 +182,7 @@ def plotReport(figName,
 
 def plotLearningReport(Warray,
                        rewardArray,
+                       rewardArrays,
                        figName):
 
     # make the figure and the axes grid
@@ -206,8 +209,13 @@ def plotLearningReport(Warray,
 
     # Plot the moving average of the reward
     make_spines(axReward)
-    axReward.plot(iterationArray, rewardArray)
+    axReward.plot(iterationArray, rewardArray, label='mean reward')
+    for key in rewardArrays:
+        label = 'reward class {}'.format(key)
+        axReward.plot(iterationArray, rewardArrays[key], label=label)
     axReward.grid(True, linestyle='--')
+    axReward.legend(fontsize=8)
+
     axReward.set_xlabel('# iterations')
     axReward.set_ylabel('mean reward')
 
