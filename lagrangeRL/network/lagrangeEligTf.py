@@ -266,8 +266,8 @@ class lagrangeEligTf(networkBase.networkBase):
 
         self.WnoWta = copy.deepcopy(self.W.data)
         self.WnoWta[self.N - nOutputNeurons:, self.N - nOutputNeurons:] = 0.
-        print('The weigth matrix without the WTA:')
-        print(self.WnoWta)
+        #print('The weigth matrix without the WTA:')
+        #print(self.WnoWta)
 
     def run(self, timeDifference):
         """

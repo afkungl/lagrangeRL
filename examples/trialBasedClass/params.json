@@ -1,0 +1,23 @@
+{
+	"layers": [4,2],
+	"tau": 10.0,
+	"tauElig": 1.0,
+	"sigmaLog": 1.0,
+	"learningRate": 0.3,
+	"weightDecayRate": 0.0,
+	"weightDecayTarget": 0.4,
+	"nudging": 0.1,
+	"simTime": 150.0,
+	"timeStep": 0.1,
+	"labels": [0,1],
+	"gammaReward": 0.3,
+	"Niter": 100,
+	"dataSet": "dataset.txt",
+	"trueReward": 1.0,
+	"falseReward": -1.0,
+	"initWeightMean": 0.5,
+	"initWeightWidth": 0.1,
+	"wtaStrength": 0.6,
+	"figSize": [2,2],
+	"logLevel": "INFO"
+}
