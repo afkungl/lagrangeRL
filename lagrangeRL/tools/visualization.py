@@ -31,7 +31,8 @@ def plotReport(figName,
                figSize,
                wCurrent,
                eligs,
-               signDeltaW):
+               signDeltaW,
+               simTime = None):
     """
         Function to plot the report of one iteration
     """
@@ -64,6 +65,12 @@ def plotReport(figName,
     fig.add_subplot(axDeltaW)
     axDeltaWSign = plt.Subplot(fig, gs_lower[1,2])
     fig.add_subplot(axDeltaWSign)
+
+    if not(simTime is None):
+        lastN = int(simTime/timeStep)
+        traces['uMem'] = traces['uMem'][-lastN:,:]
+        traces['eligibilities'] = traces['eligibilities'][-lastN:,:]
+
 
     # make a timearray
     timeArray = np.arange(len(traces['uMem'][:,0])) * timeStep

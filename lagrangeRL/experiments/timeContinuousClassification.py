@@ -56,3 +56,9 @@ class timeContinuousClassification(trialBasedClassification):
         self.plotReport(index, output, example)
 
         self.logger.info("Iteration {} is done.".format(index))
+
+    def initLogging(self):
+
+        self.logger = logging.getLogger('timeContinuousClassification')
+        if 'logLevel' in self.params:
+            coloredlogs.install(level=self.params['logLevel'])

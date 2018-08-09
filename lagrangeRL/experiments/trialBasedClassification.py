@@ -255,7 +255,8 @@ class trialBasedClassification(object):
             self.figSize,
             wCurrent,
             eligs,
-            signDeltaW)
+            signDeltaW,
+            simTime=self.simTime)
 
     def plotFinalReport(self):
         """

@@ -33,7 +33,8 @@ class timeContinuousClassificationDelayedReward(trialBasedClassification):
         self.logger.info("The current average reward is: {}".format(self.avgR))
         nowR = self.rewardScheme.obtainReward(example['label'], output)
         if index == 1:
-            # In the first iteration there is no previous iteration, hence we provide a reward of 0. This means that no update is made
+            # In the first iteration there is no previous iteration, hence we
+            # provide a reward of 0. This means that no update is made
             R = 0
             trueLabel = self.labels[0]
         else:
@@ -70,3 +71,10 @@ class timeContinuousClassificationDelayedReward(trialBasedClassification):
         self.plotReport(index, output, example)
 
         self.logger.info("Iteration {} is done.".format(index))
+
+    def initLogging(self):
+
+        self.logger = logging.getLogger(
+            'timeContinuousClassificationDelayedReward')
+        if 'logLevel' in self.params:
+            coloredlogs.install(level=self.params['logLevel'])
