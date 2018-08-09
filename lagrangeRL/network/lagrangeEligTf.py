@@ -4,6 +4,8 @@ from scipy.sparse import linalg
 import copy
 import tensorflow as tf
 import lagrangeRL.tools.tfTools as tfTools
+import logging
+import coloredlogs
 
 class lagrangeEligTf(networkBase.networkBase):
 
@@ -14,6 +16,9 @@ class lagrangeEligTf(networkBase.networkBase):
 
         self.dtype = tf.float32
         self.T = 0.
+
+        # set up a logger
+        self.logger = logging.getLogger('lagrangeEligTf')
 
     def setTfType(self, tfType):
         """
@@ -274,9 +279,13 @@ class lagrangeEligTf(networkBase.networkBase):
             run the simulation for the given time Difference
         """
 
-        endSim = self.T + timeDifference
-        while self.T < endSim:
+        self.logger.debug('The global time before the run command is: {}'.format(self.T))
+        simSteps = int(timeDifference/self.timeStep)
+        if abs(simSteps * self.timeStep - timeDifference) > 1e-4:
+            self.logger.warning("The simulated time is not an integer multiple of the timestep. This can lead to timing offsets!")
+        for i in range(simSteps):
             self.Update()
+        self.logger.debug('The global time after the run command is: {}'.format(self.T))
 
     def getMembPotentials(self):
     	"""
