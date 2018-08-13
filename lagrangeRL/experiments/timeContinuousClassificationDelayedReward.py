@@ -51,7 +51,7 @@ class timeContinuousClassificationDelayedReward(trialBasedClassification):
             self.avgRArrays[key].append(self.avgR[key])
 
         # Update the weights
-        modavgR = np.min([np.max([self.avgR[trueLabel], 0.]), 0.95])
+        modavgR = np.max([self.avgR[trueLabel], 0.])
         self.deltaW = self.simClass.calculateWeightUpdates(self.learningRate,
                                                            R - modavgR)
         self.deltaWBatch += self.deltaW
