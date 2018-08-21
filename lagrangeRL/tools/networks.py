@@ -57,7 +57,7 @@ def feedForwardWtaReadout(layers, wtaStrength=1., offset=0.,
 
     # create WTA matrix
     Nlast = layers[-1]
-    wta = -1.*np.ones((Nlast, Nlast))
+    wta = -1.*np.ones((Nlast, Nlast))*(1./(Nlast-1.))
     np.fill_diagonal(wta, 1.)
     WMask[-Nlast:,-Nlast:] = 0
     W[-Nlast:, -Nlast:] = wta*wtaStrength

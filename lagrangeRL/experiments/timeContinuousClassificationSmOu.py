@@ -57,7 +57,7 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
     def singleIteration(self, index=0):
 
         # get and set example
-        example = self.myData.getNextTestExample()[0]
+        example = self.myData.getRandomTestExample()[0]
         self.Input.value[:self.layers[0]] = example['data']
 
         # get and set random noise
@@ -85,7 +85,8 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
                                                            R - modavgR)
         self.deltaWBatch += self.deltaW
 
-        if index % self.layers[-1] == 0:
+        #if index % self.layers[-1] == 0:
+        if index % 1 == 0:
             self.deltaWBatch += -1. * self.weightDecayRate * \
                 (copy.deepcopy(self.simClass.W.data) - self.weightDecayTarget)
             self.simClass.applyWeightUpdates(self.deltaWBatch, self.cap)
@@ -96,9 +97,9 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
 
         self.Warray.append(self.simClass.W.data[~self.simClass.W.mask])
 
-        self.simClass.run(self.tRamp, updateNudging=True)
-
         self.plotReport(index, output, example)
+
+        self.simClass.run(self.tRamp, updateNudging=True)
 
         self.simClass.deleteTraces()
 

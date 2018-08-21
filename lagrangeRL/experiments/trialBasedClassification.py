@@ -83,6 +83,8 @@ class trialBasedClassification(object):
 
         for index in range(1, self.Niter + 1):
             self.singleIteration(index)
+            if index % 25 == 0:
+                self.plotFinalReport()
 
         self.plotFinalReport()
 

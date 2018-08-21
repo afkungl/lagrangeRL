@@ -173,16 +173,16 @@ class lagrangeEligTf(networkBase.networkBase):
             # Intermediate nodes for the vector
             y1 = tfTools.tf_mat_vec_dot(self.tfW, self.rho)
             y2 = -1. * self.u
-            y3 = tfTools.tf_mat_vec_dot(tf.diag(tfTools.tf_mat_vec_dot(tf.transpose(self.tfWnoWta),self.u - tfTools.tf_mat_vec_dot(self.tfW,self.rho))), self.rho)
+            y3 = tfTools.tf_mat_vec_dot(tf.diag(tfTools.tf_mat_vec_dot(tf.transpose(self.tfW),self.u - tfTools.tf_mat_vec_dot(self.tfW,self.rho))), self.rho)
             y4 = self.beta*tfTools.tf_mat_vec_dot(tf.diag(self.targetMaskTf), self.targetTf + self.tau * self.targetPrimeTf - self.u)
             y = y1 + y2 + y3 + y4
 
             # Intermediate nodes for the matrix part
             A1 = tf.matmul(self.tfW, tf.diag(self.rhoPrime))
-            A2 = tf.matmul(tf.diag(tfTools.tf_mat_vec_dot(tf.transpose(self.tfWnoWta), self.u - tfTools.tf_mat_vec_dot(self.tfW, self.rho))), tf.diag(self.rhoPrimePrime))
+            A2 = tf.matmul(tf.diag(tfTools.tf_mat_vec_dot(tf.transpose(self.tfW), self.u - tfTools.tf_mat_vec_dot(self.tfW, self.rho))), tf.diag(self.rhoPrimePrime))
             AZ = tf.matmul(self.tfW, tf.diag(self.rhoPrime))
             AY = identity - AZ
-            AX = tf.matmul(tf.transpose(self.tfWnoWta), AY)
+            AX = tf.matmul(tf.transpose(self.tfW), AY)
             A3 = tf.matmul(tf.diag(self.rhoPrime), AX)
             A4 = self.beta * tf.diag(self.targetMaskTf)
             A = self.tau * (identity - A1 - A2 - A3 + A4)
@@ -357,7 +357,7 @@ class lagrangeEligTf(networkBase.networkBase):
         wDummy = copy.deepcopy(self.W)
         self.W = self.W + deltaW
         if not (cap is None):
-        	np.clip(self.W, cap[0], cap[1])
+        	self.W = np.clip(self.W, cap[0], cap[1])
         self.W[self.maskIndex] = 0
         self.W[self.wMaxFixed] = wDummy[self.wMaxFixed]
 
