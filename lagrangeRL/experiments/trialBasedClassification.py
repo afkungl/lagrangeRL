@@ -238,12 +238,17 @@ class trialBasedClassification(object):
         outputRho = self.simClass.getActivities()[self.N - self.layers[-1]:]
         target = np.argmax(example['label']) + 1
         data = example['data']
+        """
         wCurrent = self.simClass.W.data[
             self.layers[0]:, :self.N - self.layers[1]].T
         eligs = self.simClass.getEligibilities(
         )[self.layers[0]:, :self.N - self.layers[1]].T
         signDeltaW = np.sign(
             self.deltaW[self.layers[0]:, :self.N - self.layers[1]].T)
+        """
+        wCurrent = self.simClass.W.data.T
+        eligs = self.simClass.getEligibilities().T
+        signDeltaW = np.sign(self.deltaW.T)
         lagrangeRL.tools.visualization.plotReport(
             figName,
             self.timeStep,

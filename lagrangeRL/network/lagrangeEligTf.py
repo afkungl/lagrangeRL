@@ -93,6 +93,13 @@ class lagrangeEligTf(networkBase.networkBase):
         self.uTraces = []
         self.eligibilityTraces = []
 
+    def deleteTraces(self):
+
+        del self.uTraces
+        del self.eligibilityTraces
+        self.uTraces = []
+        self.eligibilityTraces = []
+
     def connectActivationFunction(self, actFuncObject):
         """
 
@@ -274,7 +281,7 @@ class lagrangeEligTf(networkBase.networkBase):
         #print('The weigth matrix without the WTA:')
         #print(self.WnoWta)
 
-    def run(self, timeDifference):
+    def run(self, timeDifference, updateNudging=False):
         """
             run the simulation for the given time Difference
         """
@@ -284,6 +291,8 @@ class lagrangeEligTf(networkBase.networkBase):
         if abs(simSteps * self.timeStep - timeDifference) > 1e-4:
             self.logger.warning("The simulated time is not an integer multiple of the timestep. This can lead to timing offsets!")
         for i in range(simSteps):
+            if updateNudging:
+                self.target.updateNudging(self.timeStep)
             self.Update()
         self.logger.debug('The global time after the run command is: {}'.format(self.T))
 
