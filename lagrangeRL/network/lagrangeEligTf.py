@@ -352,10 +352,12 @@ class lagrangeEligTf(networkBase.networkBase):
         """
         return learningRate * modulator * self.sess.run(self.eligibility)
 
-    def applyWeightUpdates(self, deltaW):
+    def applyWeightUpdates(self, deltaW, cap=None):
 
         wDummy = copy.deepcopy(self.W)
         self.W = self.W + deltaW
+        if not (cap is None):
+        	np.clip(self.W, cap[0], cap[1])
         self.W[self.maskIndex] = 0
         self.W[self.wMaxFixed] = wDummy[self.wMaxFixed]
 

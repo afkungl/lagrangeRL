@@ -51,6 +51,7 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
         self.tRamp = params['tRamp']
         self.noiseStd = params['noiseStd']
         self.noiseAutoCorrTime = params['noiseAutoCorrTime']
+        self.cap = params['cap'] # tuple of capping the weights, None for no clipping
         self.params = params
 
     def singleIteration(self, index=0):
@@ -87,7 +88,7 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
         if index % self.layers[-1] == 0:
             self.deltaWBatch += -1. * self.weightDecayRate * \
                 (copy.deepcopy(self.simClass.W.data) - self.weightDecayTarget)
-            self.simClass.applyWeightUpdates(self.deltaWBatch)
+            self.simClass.applyWeightUpdates(self.deltaWBatch, self.cap)
             self.simClass.calcWnoWta(self.layers[-1])
             self.logger.debug(
                 'The applied weigth changes: {}'.format(self.deltaWBatch))
