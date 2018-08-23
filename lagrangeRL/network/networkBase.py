@@ -17,6 +17,7 @@ class networkBase(object):
         self.input = np.nan
         self.target = np.nan
         self.actFunc = np.nan
+        self.weightDecay = None
 
 
     def addMatrix(self, W):
@@ -31,6 +32,10 @@ class networkBase(object):
         # make sure that the data below the mask is zero
         self.maskIndex = np.where(W.mask == 1)
         self.W[self.maskIndex] = 0
+
+    def connectWeightDecay(self, decayModel):
+
+        self.weightDecay = decayModel
 
     def connectInput(self, input):
         """

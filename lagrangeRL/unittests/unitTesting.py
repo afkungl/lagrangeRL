@@ -60,6 +60,25 @@ class rewardSchemeCase(unittest.TestCase):
         self.assertEqual(self.trueReward, self.maxScheme.obtainReward(self.truePred, self.true))
         self.assertEqual(self.falseReward, self.maxScheme.obtainReward(self.falsePred, self.true))
 
+class weigthDecays(unittest.TestCase):
+
+    def test_flatValleyL2Decay(self):
+
+        W = np.array([[0.0, 0.2, 0.4],
+                        [1.0, 0.8, 0.6],
+                        [0.5, 0.1, 0.9]])
+        dWExpected = np.array([[2., 0.0, 0.0],
+                        [-2., 0.0, 0.0],
+                        [0.0, 1., -1.]])
+
+        decayModel = lagrangeRL.tools.weightDecayModels.flatValleyL2Decay(
+                                                                0.2,
+                                                                0.8,
+                                                                10.)
+        dW = decayModel.getDeltaW(W)
+
+        self.assertTrue((np.around(dW,3) == np.around(dWExpected, 3)).all())
+
 if __name__ == '__main__':
 
     unittest.main(verbosity=2)

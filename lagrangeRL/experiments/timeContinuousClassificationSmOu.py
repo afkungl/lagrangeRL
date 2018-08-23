@@ -51,7 +51,11 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
         self.tRamp = params['tRamp']
         self.noiseStd = params['noiseStd']
         self.noiseAutoCorrTime = params['noiseAutoCorrTime']
-        self.cap = params['cap'] # tuple of capping the weights, None for no clipping
+        # tuple of capping the weights, None for no clipping
+        self.cap = params['cap']
+        self.lowerValley = params['lowerValley']
+        self.upperValley = params['upperValley']
+        self.kappaDecay = params['kappaDecay']
         self.params = params
 
     def singleIteration(self, index=0):
@@ -81,13 +85,15 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
 
         # Update the weights
         modavgR = np.min([np.max([self.avgR[trueLabel], 0.]), 1.])
-        self.logger.debug('The avgR for the label {0} is {1}'.format(self.labels[trueLabel], self.avgR[trueLabel]))
-        self.logger.debug('The modavgR for the label {0} is {1}'.format(self.labels[trueLabel], modavgR))
+        self.logger.debug('The avgR for the label {0} is {1}'.format(
+            self.labels[trueLabel], self.avgR[trueLabel]))
+        self.logger.debug('The modavgR for the label {0} is {1}'.format(
+            self.labels[trueLabel], modavgR))
         self.deltaW = self.simClass.calculateWeightUpdates(self.learningRate,
                                                            R - modavgR)
         self.deltaWBatch += self.deltaW
 
-        #if index % self.layers[-1] == 0:
+        # if index % self.layers[-1] == 0:
         if index % 1 == 0:
             self.deltaWBatch += -1. * self.weightDecayRate * \
                 (copy.deepcopy(self.simClass.W.data) - self.weightDecayTarget)
@@ -106,6 +112,7 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
         self.simClass.deleteTraces()
 
         self.logger.info("Iteration {} is done.".format(index))
+        self.logger.debug("The current weights are: {}".format(self.simClass.W))
 
     def initLogging(self):
 
@@ -126,3 +133,32 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
             tau=self.noiseAutoCorrTime,
             standardDiv=self.noiseStd)
         self.simClass.connectTarget(self.nudgingNoise)
+
+    def initialize(self):
+        """
+            Set up the simulation
+        """
+
+        self.initLogging()
+        self.setUpNetwork()
+        self.setUpInput()
+        self.setUpExpNoise()
+        self.setUpActivationFunction()
+        self.setUpDataHandler()
+        self.setUpRewardScheme()
+        self.setUpWeightDecay()
+        self.simClass.initCompGraph()
+        self.setUpSavingArrays()
+        self.makeOutputFolder()
+
+    def setUpWeightDecay(self):
+
+        self.weightDecay = lagrangeRL.tools.weightDecayModels.flatValleyL2Decay(
+            self.lowerValley,
+            self.upperValley,
+            self.kappaDecay)
+        self.simClass.connectWeightDecay(self.weightDecay)
+
+        if self.cap == "None":
+            self.cap = None
+            self.logger.info('The weights clipping is NOT active')

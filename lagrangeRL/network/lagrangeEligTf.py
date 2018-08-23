@@ -111,6 +111,7 @@ class lagrangeEligTf(networkBase.networkBase):
         self.actFuncPrime = actFuncObject.valuePrime
         self.actFuncPrimePrime = actFuncObject.valuePrimePrime
 
+
     def createComputationalGraph(self):
         """
             Create the computational graph in tensorflow
@@ -372,7 +373,12 @@ class lagrangeEligTf(networkBase.networkBase):
     def applyWeightUpdates(self, deltaW, cap=None):
 
         wDummy = copy.deepcopy(self.W)
-        self.W = self.W + deltaW
+        if not (self.weightDecay is None):
+        	deltaWDecay = self.weightDecay.getDeltaW(self.W)
+        else:
+        	deltaWDecay = copy.deepcopy(self.W) * 0.
+        self.logger.debug('weight changes due to weigth decay: {}'.format(deltaWDecay))
+        self.W = self.W + deltaW + deltaWDecay
         if not (cap is None):
             self.W = np.clip(self.W, cap[0], cap[1])
         self.W[self.maskIndex] = 0
