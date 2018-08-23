@@ -32,12 +32,16 @@ def feedForward(layers):
     return WX
 
 def feedForwardWtaReadout(layers, wtaStrength=1., offset=0.,
-                          noiseMagnitude=1.):
+                          noiseMagnitude=1., inhStrength=None):
     """
         Create a the connection matrix as a masked matrix of a feedforward network with a winner-take-all network in the last layer
 
         Keywords:
             --- layers: list of number of neurons in the consecutive layers
+            --- wtaStrength: wieght of the excitatory connections
+            --- offset: offset in the feedforward connections
+            --- noiseMagnitued: magnitude of the uniform noise in the feedforward connections
+            --- inhStrength: the strength of the inhibitory connections if specified
     """
 
     # get the number of neurons
@@ -56,11 +60,18 @@ def feedForwardWtaReadout(layers, wtaStrength=1., offset=0.,
             upper += layers[i + 2]
 
     # create WTA matrix
+    if not (inhStrength is None):
+        inhW = inhStrength
+    elif layers[-1] != 1:
+        inhW = wtaStrength / (layers[-1] - 1.)
+    elif layers[-1] != 1:
+        # they are not set anyway
+        inhW = inhStrength
     Nlast = layers[-1]
-    wta = -1.*np.ones((Nlast, Nlast))*(1./(Nlast-1.))
-    np.fill_diagonal(wta, 1.)
+    wta = -1.*np.ones((Nlast, Nlast))*inhW
+    np.fill_diagonal(wta, wtaStrength)
     WMask[-Nlast:,-Nlast:] = 0
-    W[-Nlast:, -Nlast:] = wta*wtaStrength
+    W[-Nlast:, -Nlast:] = wta
 
     WX = ma.masked_array(W, mask=WMask.astype(int))
     index = np.where(WX.mask == 1)

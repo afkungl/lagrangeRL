@@ -229,6 +229,113 @@ def plotLearningReport(Warray,
     fig.savefig(figName, dpi=200)
     plt.close(fig)
 
+def plotReportWtaTest(traces,
+                      timeStep,
+                      rhoInput,
+                      rhoOutput,
+                      uOutput,
+                      eligs,
+                      figName):
+
+
+    # make the figure and the axes grid
+    plt.rcParams["font.family"] = "serif"
+    width = 12.
+    ratio = 0.75
+    fig = plt.figure( figsize=(width,ratio*width))
+    gs_main = gs.GridSpec(3, 2, hspace=0.3, height_ratios=[1,1,1],
+                          left=0.07, right=0.93, top=.97, bottom=0.07)
+    
+    # add subplots
+    axMembPot = plt.Subplot(fig, gs_main[0,0])
+    fig.add_subplot(axMembPot)
+    axElig = plt.Subplot(fig, gs_main[0,1])
+    fig.add_subplot(axElig)
+    axInput = plt.Subplot(fig, gs_main[1,0])
+    fig.add_subplot(axInput)
+    axOutputRho = plt.Subplot(fig, gs_main[1,1])
+    fig.add_subplot(axOutputRho)
+    axOutputU = plt.Subplot(fig, gs_main[2,0])
+    fig.add_subplot(axOutputU)
+    axOutputElig = plt.Subplot(fig, gs_main[2,1])
+    fig.add_subplot(axOutputElig)
+
+    # make a timearray
+    timeArray = np.arange(len(traces['uMem'][:,0])) * timeStep
+
+    # Plot the membrane potentials
+    uMems = traces['uMem']
+    make_spines(axMembPot)
+    for index in range(len(uMems[0,:])):
+        axMembPot.plot(timeArray, uMems[:, index])
+    axMembPot.set_xlabel(r'time $[ms]$')
+    axMembPot.set_ylabel('memb. pot. [a.u.]')
+
+    # Plot the eligibility traces
+    uElig = traces['eligibilities']
+    make_spines(axElig)
+    for index in range(len(uElig[0,:])):
+        axElig.plot(timeArray, uElig[:, index])
+    axElig.set_xlabel(r'time $[ms]$')
+    axElig.set_ylabel('elig. traces [a.u.]')
+
+    # bar plots of the input activities
+    nInput = len(rhoInput)
+    width = 0.7
+    xPos = np.arange(1, nInput + 1)
+    make_spines(axInput)
+    axInput.bar(xPos, rhoInput, width=width)
+    axInput.set_xlabel('input neurons')
+    axInput.set_ylabel('activity [a.u.]')
+    axInput.set_xticks(np.arange(1, nInput + 1))
+
+    # bar plots of the output activities
+    nOutput = len(rhoOutput)
+    width = 0.7
+    xPos = np.arange(1, nOutput + 1)
+    make_spines(axOutputRho)
+    axOutputRho.bar(xPos, rhoOutput, width=width)
+    axOutputRho.set_xlabel('output neurons')
+    axOutputRho.set_ylabel('activity [a.u.]')
+    axOutputRho.set_xticks(np.arange(1, nOutput + 1))
+
+    # bar plots of the output memb potentials
+    nOutput = len(uOutput)
+    width = 0.7
+    xPos = np.arange(1, nOutput + 1)
+    make_spines(axOutputU)
+    axOutputU.bar(xPos, uOutput, width=width)
+    axOutputU.set_xlabel('output neurons')
+    axOutputU.set_ylabel('memb. pot. [a.u.]')
+    axOutputU.set_xticks(np.arange(1, nOutput + 1))
+
+    # Eligibility traces of the weights from the input to the output layer
+    # plot the final eligibility traces
+    show_axis(axOutputElig)
+    maxAbs = np.max(np.abs(eligs))
+    imAx = axOutputElig.imshow(eligs, cmap='bwr',
+                  aspect=1, interpolation='nearest',
+                  vmin=-1.*maxAbs, vmax=maxAbs)
+    cax = inset_axes(axOutputElig,
+                 width="5%",  # width = 10% of parent_bbox width
+                 height="100%",  # height : 50%
+                 loc=3,
+                 bbox_to_anchor=(1.05, 0., 1, 1),
+                 bbox_transform=axOutputElig.transAxes,
+                 borderpad=0,
+                 )
+    cbar = colorbar(imAx, cax=cax)
+    axOutputElig.set_ylabel('input')
+    axOutputElig.set_title('final elig.')
+    axOutputElig.set_xlabel('neurons')
+    axOutputElig.set_xticks(np.arange(0, nOutput))
+
+
+    # save the plot
+    fig.savefig(figName, dpi=200)
+    plt.close(fig)
+
+
 def main():
     """
         Function for local testing

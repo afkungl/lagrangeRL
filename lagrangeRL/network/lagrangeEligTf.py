@@ -7,6 +7,7 @@ import lagrangeRL.tools.tfTools as tfTools
 import logging
 import coloredlogs
 
+
 class lagrangeEligTf(networkBase.networkBase):
 
     def __init__(self):
@@ -14,7 +15,7 @@ class lagrangeEligTf(networkBase.networkBase):
         Initialize an empty class instance
         """
 
-        self.dtype = tf.float32
+        self.dtype = tf.float64
         self.T = 0.
 
         # set up a logger
@@ -26,7 +27,7 @@ class lagrangeEligTf(networkBase.networkBase):
 
             Keywords:
                 --- tfType: datatype has to be a tensorflow datatype, e.g. tf.float32
-            
+
         """
 
         self.dtyep = tfType
@@ -118,68 +119,77 @@ class lagrangeEligTf(networkBase.networkBase):
         dependencies = []
 
         # Set up the variables which will be then tracked
-        self.u = tf.Variable(np.zeros(self.N), dtype = self.dtype)
-        self.eligibility = tf.Variable(np.zeros((self.N, self.N)), dtype = self.dtype)
+        self.u = tf.Variable(np.zeros(self.N), dtype=self.dtype)
+        self.eligibility = tf.Variable(
+            np.zeros((self.N, self.N)), dtype=self.dtype)
+        self.eligibilityDiff = tf.Variable(
+            np.zeros((self.N, self.N)), dtype=self.dtype)
         self.rho = tf.Variable(np.zeros(self.N),
-                               dtype = self.dtype)
+                               dtype=self.dtype)
         self.rhoPrime = tf.Variable(np.zeros(self.N),
-                                    dtype = self.dtype)
+                                    dtype=self.dtype)
         self.rhoPrimePrime = tf.Variable(np.zeros(self.N),
-                                         dtype = self.dtype)
+                                         dtype=self.dtype)
 
         # We need an identity tensor with float values
         identity = tf.Variable(np.eye(self.N),
                                dtype=self.dtype)
-
+        one = tf.Variable(np.eye(1),
+                               dtype=self.dtype)
 
         # Set up the placeholdeers which can be then modified
-        self.tfW = tf.placeholder(shape = self.W.shape, dtype = self.dtype)
-        self.tfWnoWta =  tf.placeholder(shape = self.W.shape, dtype = self.dtype)
-        self.inputTf = tf.placeholder(dtype = self.dtype,
-                                    shape = (self.N))
-        self.inputPrimeTf = tf.placeholder(dtype = self.dtype,
-                                         shape = (self.N))
-        self.inputMaskTf = tf.placeholder(dtype = self.dtype,
-                                        shape = (self.N))
-        self.targetTf = tf.placeholder(dtype = self.dtype,
-                                     shape = (self.N))
-        self.targetPrimeTf = tf.placeholder(dtype = self.dtype,
-                                          shape = (self.N))
-        self.targetMaskTf = tf.placeholder(dtype = self.dtype,
-                                         shape = (self.N))
+        self.tfW = tf.placeholder(shape=self.W.shape, dtype=self.dtype)
+        self.tfWnoWta = tf.placeholder(shape=self.W.shape, dtype=self.dtype)
+        self.inputTf = tf.placeholder(dtype=self.dtype,
+                                      shape=(self.N))
+        self.inputPrimeTf = tf.placeholder(dtype=self.dtype,
+                                           shape=(self.N))
+        self.inputMaskTf = tf.placeholder(dtype=self.dtype,
+                                          shape=(self.N))
+        self.targetTf = tf.placeholder(dtype=self.dtype,
+                                       shape=(self.N))
+        self.targetPrimeTf = tf.placeholder(dtype=self.dtype,
+                                            shape=(self.N))
+        self.targetMaskTf = tf.placeholder(dtype=self.dtype,
+                                           shape=(self.N))
 
         # an example input mask is needed to build the comp graph
-        inputMask = self.input.getInput(0.)[2] 
+        inputMask = self.input.getInput(0.)[2]
         nInput = len(np.where(inputMask == 1)[0])
         nFull = len(inputMask)
 
-        ## Start the calculations
+        # Start the calculations
         # Calculate the activation functions
         dependencies.append(tf.assign(self.rho, self.actFunc(self.u)))
-        dependencies.append(tf.assign(self.rhoPrime, self.actFuncPrime(self.u)))
-        dependencies.append(tf.assign(self.rhoPrimePrime, self.actFuncPrimePrime(self.u)))
+        dependencies.append(
+            tf.assign(self.rhoPrime, self.actFuncPrime(self.u)))
+        dependencies.append(tf.assign(self.rhoPrimePrime,
+                                      self.actFuncPrimePrime(self.u)))
 
         # set the membrane potential on the input neurons
         dependencies.append(tf.scatter_update(self.u,
-        									  np.arange(nInput),
-        									  tf.slice(self.inputTf,
-        									  		  [0],
-        									  		  [nInput]
-        									  		  )
-        									  )
-        					)
+                                              np.arange(nInput),
+                                              tf.slice(self.inputTf,
+                                                       [0],
+                                                       [nInput]
+                                                       )
+                                              )
+                            )
 
         with tf.control_dependencies(dependencies):
             # Intermediate nodes for the vector
             y1 = tfTools.tf_mat_vec_dot(self.tfW, self.rho)
             y2 = -1. * self.u
-            y3 = tfTools.tf_mat_vec_dot(tf.diag(tfTools.tf_mat_vec_dot(tf.transpose(self.tfW),self.u - tfTools.tf_mat_vec_dot(self.tfW,self.rho))), self.rho)
-            y4 = self.beta*tfTools.tf_mat_vec_dot(tf.diag(self.targetMaskTf), self.targetTf + self.tau * self.targetPrimeTf - self.u)
+            y3 = tfTools.tf_mat_vec_dot(tf.diag(tfTools.tf_mat_vec_dot(tf.transpose(
+                self.tfW), self.u - tfTools.tf_mat_vec_dot(self.tfW, self.rho))), self.rho)
+            y4 = self.beta * tfTools.tf_mat_vec_dot(tf.diag(
+                self.targetMaskTf), self.targetTf + self.tau * self.targetPrimeTf - self.u)
             y = y1 + y2 + y3 + y4
 
             # Intermediate nodes for the matrix part
             A1 = tf.matmul(self.tfW, tf.diag(self.rhoPrime))
-            A2 = tf.matmul(tf.diag(tfTools.tf_mat_vec_dot(tf.transpose(self.tfW), self.u - tfTools.tf_mat_vec_dot(self.tfW, self.rho))), tf.diag(self.rhoPrimePrime))
+            A2 = tf.matmul(tf.diag(tfTools.tf_mat_vec_dot(tf.transpose(
+                self.tfW), self.u - tfTools.tf_mat_vec_dot(self.tfW, self.rho))), tf.diag(self.rhoPrimePrime))
             AZ = tf.matmul(self.tfW, tf.diag(self.rhoPrime))
             AY = identity - AZ
             AX = tf.matmul(tf.transpose(self.tfW), AY)
@@ -189,30 +199,33 @@ class lagrangeEligTf(networkBase.networkBase):
 
         # Look at the dynamics of the free neurons only
         inputVector = self.inputPrimeTf * self.inputMaskTf
-        yNew = y - tfTools.tf_mat_vec_dot(A,inputVector)
+        yNew = y - tfTools.tf_mat_vec_dot(A, inputVector)
         yRed = tf.slice(y, [nInput], [-1])
         Ared = tf.slice(A, [nInput, nInput], [-1, -1])
 
-
         # Calculate the update step for the membrane potentials
-        self.uDiff =  tf.cholesky_solve(tf.cholesky(Ared), tf.expand_dims(yRed, 1))[:,0]
+        self.uDiff = tf.cholesky_solve(
+            tf.cholesky(Ared), tf.expand_dims(yRed, 1))[:, 0]
         dependencies.append(self.uDiff)
 
+        # Calculate the step in the eligibility trace
+        dependencies.append(self.eligibilityDiff.assign(self.learningRate * tfTools.tf_outer_product(
+            self.u - tfTools.tf_mat_vec_dot(self.tfWnoWta, self.rho), self.rho)))
+
         with tf.control_dependencies(dependencies):
-            # Calculate the step in the eligibility trace
-            self.eligibilityDiff = self.learningRate * tfTools.tf_outer_product(self.u - tfTools.tf_mat_vec_dot(self.tfWnoWta, self.rho), self.rho)
 
             # Apply membrane potentials
-            self.applyMembranePot = tf.scatter_update(self.u, np.arange(nInput, nFull), tf.slice(self.u, [nInput], [-1]) + self.timeStep * self.uDiff)
+            self.applyMembranePot = tf.scatter_update(self.u, np.arange(
+                nInput, nFull), tf.slice(self.u, [nInput], [-1]) + self.timeStep * self.uDiff)
 
             # Apply eligibility trace
-            dependencies.append(self.eligibility.assign(self.eligibility + self.timeStep * self.eligibilityDiff))
+            dependencies.append(self.eligibility.assign(
+                self.eligibility + self.timeStep * self.eligibilityDiff))
 
         with tf.control_dependencies(dependencies):
             # Apply decay to the elifibility trace
             self.applyEligibility = self.eligibility.assign(
-                                        self.eligibility*tf.exp(-self.timeStep/self.tauEligibility))
-
+                self.eligibility * tf.exp(-1. * one * self.timeStep / self.tauEligibility))
 
     def initCompGraph(self):
 
@@ -233,8 +246,8 @@ class lagrangeEligTf(networkBase.networkBase):
         """
 
         # set the value of the input neurons form the input
-        [self.inputValue, self.inputPrime, self.inputMask]  = self.input.getInput(self.T)
-
+        [self.inputValue, self.inputPrime,
+            self.inputMask] = self.input.getInput(self.T)
 
     def Update(self):
         """
@@ -247,18 +260,18 @@ class lagrangeEligTf(networkBase.networkBase):
 
         # perform the comp graph with the correct placeholders
         inputs = self.input.getInput(self.T)
-        targets = self.target.getTarget(self.T) 
-        placeholderDict = {self.tfW : self.W.data,
-                           self.tfWnoWta : self.WnoWta,
-                           self.inputTf : inputs[0],
-                           self.inputPrimeTf : inputs[1],
-                           self.inputMaskTf : inputs[2],
-                           self.targetTf : targets[0],
-                           self.targetPrimeTf : targets[1],
-                           self.targetMaskTf : targets[2],
-                            }
+        targets = self.target.getTarget(self.T)
+        placeholderDict = {self.tfW: self.W.data,
+                           self.tfWnoWta: self.WnoWta,
+                           self.inputTf: inputs[0],
+                           self.inputPrimeTf: inputs[1],
+                           self.inputMaskTf: inputs[2],
+                           self.targetTf: targets[0],
+                           self.targetPrimeTf: targets[1],
+                           self.targetMaskTf: targets[2],
+                           }
 
-        #for value in placeholderDict.values():
+        # for value in placeholderDict.values():
         #    print value
 
         # run the updates
@@ -269,7 +282,8 @@ class lagrangeEligTf(networkBase.networkBase):
         # Save the traces if applicable
         if self.saveTraces:
             self.uTraces.append(self.sess.run(self.u))
-            self.eligibilityTraces.append(self.sess.run(self.eligibility)[~self.W.mask])
+            self.eligibilityTraces.append(
+                self.sess.run(self.eligibility)[~self.W.mask])
 
     def calcWnoWta(self, nOutputNeurons):
         """
@@ -279,29 +293,32 @@ class lagrangeEligTf(networkBase.networkBase):
         self.WnoWta = copy.deepcopy(self.W.data)
         self.WnoWta[self.N - nOutputNeurons:, self.N - nOutputNeurons:] = 0.
         #print('The weigth matrix without the WTA:')
-        #print(self.WnoWta)
+        # print(self.WnoWta)
 
     def run(self, timeDifference, updateNudging=False):
         """
             run the simulation for the given time Difference
         """
 
-        self.logger.debug('The global time before the run command is: {}'.format(self.T))
-        simSteps = int(timeDifference/self.timeStep)
+        self.logger.debug(
+            'The global time before the run command is: {}'.format(self.T))
+        simSteps = int(timeDifference / self.timeStep)
         if abs(simSteps * self.timeStep - timeDifference) > 1e-4:
-            self.logger.warning("The simulated time is not an integer multiple of the timestep. This can lead to timing offsets!")
+            self.logger.warning(
+                "The simulated time is not an integer multiple of the timestep. This can lead to timing offsets!")
         for i in range(simSteps):
             if updateNudging:
                 self.target.updateNudging(self.timeStep)
             self.Update()
-        self.logger.debug('The global time after the run command is: {}'.format(self.T))
+        self.logger.debug(
+            'The global time after the run command is: {}'.format(self.T))
 
     def getMembPotentials(self):
-    	"""
-			Run the session and return the mebrane potentials
-    	"""
+        """
+                        Run the session and return the mebrane potentials
+        """
 
-    	return self.sess.run(self.u)
+        return self.sess.run(self.u)
 
     def getActivities(self):
         """
@@ -357,7 +374,7 @@ class lagrangeEligTf(networkBase.networkBase):
         wDummy = copy.deepcopy(self.W)
         self.W = self.W + deltaW
         if not (cap is None):
-        	self.W = np.clip(self.W, cap[0], cap[1])
+            self.W = np.clip(self.W, cap[0], cap[1])
         self.W[self.maskIndex] = 0
         self.W[self.wMaxFixed] = wDummy[self.wMaxFixed]
 

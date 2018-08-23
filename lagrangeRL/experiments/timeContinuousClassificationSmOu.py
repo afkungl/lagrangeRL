@@ -81,6 +81,8 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
 
         # Update the weights
         modavgR = np.min([np.max([self.avgR[trueLabel], 0.]), 1.])
+        self.logger.debug('The avgR for the label {0} is {1}'.format(self.labels[trueLabel], self.avgR[trueLabel]))
+        self.logger.debug('The modavgR for the label {0} is {1}'.format(self.labels[trueLabel], modavgR))
         self.deltaW = self.simClass.calculateWeightUpdates(self.learningRate,
                                                            R - modavgR)
         self.deltaWBatch += self.deltaW
