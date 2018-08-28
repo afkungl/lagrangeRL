@@ -20,7 +20,7 @@ class lagrangeEligTfApprox(lagrangeEligTf):
         self.T = 0.
 
         # set up a logger
-        self.logger = logging.getLogger('lagrangeEligTfApprox')
+        self.logger = logging.getLogger('lagrangeEligTfApproxOpt')
 
         # Set up an own timer
         self.timer = timer()
@@ -101,28 +101,22 @@ class lagrangeEligTfApprox(lagrangeEligTf):
                             )
 
         with tf.control_dependencies(dependencies):
-            # Intermediate nodes for the vector
-            y1 = tfTools.tf_mat_vec_dot(self.tfW, self.rho)
-            y2 = -1. * self.u
-            y3 = tfTools.tf_mat_vec_dot(tf.diag(tfTools.tf_mat_vec_dot(tf.transpose(
-                self.tfW), self.u - tfTools.tf_mat_vec_dot(self.tfW, self.rho))), self.rho)
-            y4 = self.beta * tfTools.tf_mat_vec_dot(tf.diag(
-                self.targetMaskTf), self.targetTf + self.tau * self.targetPrimeTf - self.u)
-            y = y1 + y2 + y3 + y4
+            
+            # frequently used ones
+            Wt = tf.transpose(self.tfW) 
+            Wrho = tfTools.tf_mat_vec_dot(self.tfW, self.rho)
+            c = tfTools.tf_mat_vec_dot(Wt, self.u - Wrho)
 
-            # Intermediate nodes for the matrix part
-            A1 = tf.matmul(self.tfW, tf.diag(self.rhoPrime))
-            A2 = tf.matmul(tf.diag(tfTools.tf_mat_vec_dot(tf.transpose(
-                self.tfW), self.u - tfTools.tf_mat_vec_dot(self.tfW, self.rho))), tf.diag(self.rhoPrimePrime))
-            AZ = tf.matmul(self.tfW, tf.diag(self.rhoPrime))
-            AY = identity - AZ
-            AX = tf.matmul(tf.transpose(self.tfW), AY)
-            A3 = tf.matmul(tf.diag(self.rhoPrime), AX)
-            A4 = self.beta * tf.diag(self.targetMaskTf)
-            A = self.tau * ((-1.) * A1 - A2 - A3 + A4)
+            # calculate the update
+            term1 = Wrho + self.tau * tfTools.tf_mat_vec_dot(self.tfW, self.rhoPrime * self.uDotOld) - self.u
+            term2 = c * (self.rhoPrime + self.tau * self.rhoPrimePrime * self.uDotOld)
+            term3 = self.tau * self.rhoPrime * (tfTools.tf_mat_vec_dot(Wt, self.uDotOld) - tfTools.tf_mat_vec_dot(tf.matmul(Wt, self.tfW), self.rhoPrime * self.uDotOld))
+            term4 = self.beta * self.targetMaskTf * ( self.targetTf - self.u + self.tau * (self.targetPrimeTf - self.uDotOld))
 
-        self.uDiff = (1. / self.tau) * \
-            (y - tfTools.tf_mat_vec_dot(A, self.uDotOld))
+            uDiffDummy = term1 + term2 + term3 + term4
+
+
+        self.uDiff = (1. / self.tau) * uDiffDummy
         dependencies.append(self.uDiff)
         dependencies.append(self.uDotOld.assign(self.uDiff))
 

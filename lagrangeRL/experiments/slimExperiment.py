@@ -29,7 +29,7 @@ class slimExperiment(timeContinuousClassificationSmOu):
             offset=self.initWeightMean,
             noiseMagnitude=self.initWeightWidth)
         # Lagrange network
-        self.simClass = lagrangeRL.network.lagrangeEligTfApproxOpt()
+        self.simClass = lagrangeRL.network.lagrangeEligTfApprox()
         self.simClass.setLearningRate(1.)
         self.simClass.setTimeStep(self.timeStep)
         self.simClass.setTau(self.tau)
