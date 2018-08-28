@@ -16,7 +16,7 @@ class lagrangeEligTfApprox(lagrangeEligTf):
         Initialize an empty class instance
         """
 
-        self.dtype = tf.float32
+        self.dtype = tf.float64
         self.T = 0.
 
         # set up a logger
