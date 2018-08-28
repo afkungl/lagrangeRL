@@ -73,10 +73,13 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
         output = self.simClass.getMembPotentials()[self.N - self.layers[-1]:]
 
         # obtain reward
-        trueLabel = np.argmax(example['label'])
+        self.logger.debug("The label vector is {}".format(example['label']))
+        self.logger.debug("The output vector is {}".format(output))
+        trueLabel = self.labels[np.argmax(example['label'])]
         self.logger.debug("The true label is: {}".format(trueLabel))
         self.logger.info("The current average reward is: {}".format(self.avgR))
         R = self.rewardScheme.obtainReward(example['label'], output)
+        self.logger.info("The obtained reward is {}".format(R))
         self.avgR[trueLabel] = self.avgR[trueLabel] + \
             self.gammaReward * (R - self.avgR[trueLabel])
         self.avgRArray.append(np.mean(self.avgR.values()))
@@ -86,9 +89,9 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
         # Update the weights
         modavgR = np.min([np.max([self.avgR[trueLabel], 0.]), 1.])
         self.logger.debug('The avgR for the label {0} is {1}'.format(
-            self.labels[trueLabel], self.avgR[trueLabel]))
+            trueLabel, self.avgR[trueLabel]))
         self.logger.debug('The modavgR for the label {0} is {1}'.format(
-            self.labels[trueLabel], modavgR))
+            trueLabel, modavgR))
         self.deltaW = self.simClass.calculateWeightUpdates(self.learningRate,
                                                            R - modavgR)
         self.deltaWBatch += self.deltaW
@@ -112,7 +115,8 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
         self.simClass.deleteTraces()
 
         self.logger.info("Iteration {} is done.".format(index))
-        self.logger.debug("The current weights are: {}".format(self.simClass.W))
+        self.logger.debug(
+            "The current weights are: {}".format(self.simClass.W))
 
     def initLogging(self):
 
@@ -150,6 +154,12 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
         self.simClass.initCompGraph()
         self.setUpSavingArrays()
         self.makeOutputFolder()
+
+        # Sanity check
+        if len(self.labels) != self.layers[-1]:
+            self.logger.critical('The length of the label array and the size of the last layer in the network have to match! Here the last layer has a size of {0}. And the label layer {1} has a size of {2}'.format(
+                self.layers[-1], self.labels, len(self.labels)))
+            sys.exit()
 
     def setUpWeightDecay(self):
 
