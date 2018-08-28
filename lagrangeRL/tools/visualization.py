@@ -187,6 +187,141 @@ def plotReport(figName,
     fig.savefig(figName, dpi=200)
     plt.close(fig)
 
+def plotReportNoTraces(figName,
+               timeStep,
+               outputU,
+               outputRho,
+               target,
+               data,
+               figSize,
+               wCurrent,
+               eligs,
+               signDeltaW,
+               simTime = None):
+    """
+        Function to plot the report of one iteration
+    """
+
+    # make the figure and the axes grid
+    plt.rcParams["font.family"] = "serif"
+    width = 12.
+    ratio = 0.7
+    fig = plt.figure( figsize=(width,ratio*width))
+    gs_main = gs.GridSpec(1, 1, height_ratios=[1],
+                          left=0.07, right=0.93, top=.97, bottom=0.07)
+    gs_lower = gs.GridSpecFromSubplotSpec(2, 3, gs_main[0, 0], wspace=0.38,
+                        hspace=.15,
+                                           width_ratios=[1, 1, 1])
+    axOutputRaw = plt.Subplot(fig, gs_lower[0,0])
+    fig.add_subplot(axOutputRaw)
+    axData = plt.Subplot(fig, gs_lower[0,1])
+    fig.add_subplot(axData)
+    axCurrentW = plt.Subplot(fig, gs_lower[0,2])
+    fig.add_subplot(axCurrentW)
+    axOutputRho = plt.Subplot(fig, gs_lower[1,0])
+    fig.add_subplot(axOutputRho)
+    axDeltaW = plt.Subplot(fig, gs_lower[1,1])
+    fig.add_subplot(axDeltaW)
+    axDeltaWSign = plt.Subplot(fig, gs_lower[1,2])
+    fig.add_subplot(axDeltaWSign)
+
+
+    # bar plots of the membrane potentials
+    nOutput = len(outputU)
+    width = 0.7
+    xPos = np.arange(1, nOutput + 1)
+    make_spines(axOutputRaw)
+    axOutputRaw.bar(xPos, outputU, width=width)
+    axOutputRaw.set_xlabel('output neurons')
+    axOutputRaw.set_ylabel('memb. pot. [a.u.]')
+    axOutputRaw.set_xticks(np.arange(1, nOutput + 1))
+
+    # bar plots of the membrane potentials
+    nOutput = len(outputRho)
+    width = 0.7
+    xPos = np.arange(1, nOutput + 1)
+    make_spines(axOutputRho)
+    axOutputRho.bar(xPos, outputRho, width=width, zorder=1)
+    axOutputRho.set_xlabel('output neurons')
+    axOutputRho.set_ylabel('activity')
+    axOutputRho.set_xticks(np.arange(1, nOutput + 1))
+    # Add target marker to the plot
+    h = np.max(outputRho)/2.
+    axOutputRho.scatter(target, h, marker='x', s=100, zorder=2)
+    hwinner = np.max(outputRho) * .75
+    axOutputRho.scatter(np.argmax(outputRho) + 1, hwinner, marker='D', s=100, zorder=2)
+
+    # print the data
+    im = np.reshape(data, figSize)
+    show_axis(axData)
+    axData.imshow(im, cmap='bwr',
+                  aspect=1., interpolation='nearest')
+    axData.set_xticks([], [])
+    axData.set_yticks([], [])
+    axData.set_title('presented data')
+
+    # plot the current weights
+    show_axis(axCurrentW)
+    maxAbs = np.max(np.abs(wCurrent))
+    imAx = axCurrentW.imshow(wCurrent, cmap='bwr',
+                  aspect=1, interpolation='nearest',
+                  vmin=-1.*maxAbs, vmax=maxAbs)
+    cax = inset_axes(axCurrentW,
+                 width="5%",  # width = 10% of parent_bbox width
+                 height="100%",  # height : 50%
+                 loc=3,
+                 bbox_to_anchor=(1.05, 0., 1, 1),
+                 bbox_transform=axCurrentW.transAxes,
+                 borderpad=0,
+                 )
+    cbar = colorbar(imAx, cax=cax)
+    axCurrentW.set_ylabel('input')
+    axCurrentW.set_xlabel('neurons')
+    axCurrentW.set_title('current weights')
+    axCurrentW.set_xticks(np.arange(0, nOutput))
+
+    # plot the final eligibility traces
+    show_axis(axDeltaW)
+    maxAbs = np.max(np.abs(eligs))
+    imAx = axDeltaW.imshow(eligs, cmap='bwr',
+                  aspect=1, interpolation='nearest',
+                  vmin=-1.*maxAbs, vmax=maxAbs)
+    cax = inset_axes(axDeltaW,
+                 width="5%",  # width = 10% of parent_bbox width
+                 height="100%",  # height : 50%
+                 loc=3,
+                 bbox_to_anchor=(1.05, 0., 1, 1),
+                 bbox_transform=axDeltaW.transAxes,
+                 borderpad=0,
+                 )
+    cbar = colorbar(imAx, cax=cax)
+    axDeltaW.set_ylabel('input')
+    axDeltaW.set_title('final elig.')
+    axDeltaW.set_xlabel('neurons')
+    axDeltaW.set_xticks(np.arange(0, nOutput))
+
+    # plot the sign of the appplied weight chages
+    show_axis(axDeltaWSign)
+    imAxSign = axDeltaWSign.imshow(signDeltaW, cmap='bwr',
+                  aspect=1, interpolation='nearest',
+                  vmin=-1., vmax=1.)
+    caxSign = inset_axes(axDeltaWSign,
+                 width="5%",  # width = 10% of parent_bbox width
+                 height="100%",  # height : 50%
+                 loc=3,
+                 bbox_to_anchor=(1.05, 0., 1, 1),
+                 bbox_transform=axDeltaWSign.transAxes,
+                 borderpad=0,
+                 )
+    cbar = colorbar(imAxSign, cax=caxSign)
+    axDeltaWSign.set_ylabel('input')
+    axDeltaWSign.set_title(r'$\mathrm{sign} (\Delta W)$')
+    axDeltaWSign.set_xlabel('neurons')
+    axDeltaWSign.set_xticks(np.arange(0, nOutput))
+
+    fig.savefig(figName, dpi=200)
+    plt.close(fig)
+
 def plotLearningReport(Warray,
                        rewardArray,
                        rewardArrays,
