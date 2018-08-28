@@ -4,6 +4,7 @@ from scipy.sparse import linalg
 import copy
 import tensorflow as tf
 import lagrangeRL.tools.tfTools as tfTools
+from lagrangeRL.tools.misc import timer
 import logging
 import coloredlogs
 
@@ -20,6 +21,9 @@ class lagrangeEligTfApprox(lagrangeEligTf):
 
         # set up a logger
         self.logger = logging.getLogger('lagrangeEligTfApprox')
+
+        # Set up an own timer
+        self.timer = timer()
 
     def createComputationalGraph(self):
         """
