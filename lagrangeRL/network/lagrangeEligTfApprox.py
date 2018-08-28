@@ -24,6 +24,7 @@ class lagrangeEligTfApprox(lagrangeEligTf):
 
         # Set up an own timer
         self.timer = timer()
+        self.timerSmall = timer()
 
     def createComputationalGraph(self):
         """

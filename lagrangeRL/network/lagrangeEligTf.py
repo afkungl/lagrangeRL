@@ -24,6 +24,7 @@ class lagrangeEligTf(networkBase.networkBase):
 
         # Set up an own timer
         self.timer = timer()
+        self.timerSmall = timer()
 
     def setTfType(self, tfType):
         """
@@ -280,8 +281,10 @@ class lagrangeEligTf(networkBase.networkBase):
         #    print value
 
         # run the updates
+        self.timerSmall.start()
         self.sess.run(self.applyMembranePot, placeholderDict)
         self.sess.run(self.applyEligibility, placeholderDict)
+        self.logger.debug('Pure tensorflow run for a single update took {}.'.format(self.timerSmall.stop()))
         self.T = self.T + self.timeStep
 
         # Save the traces if applicable
@@ -321,7 +324,7 @@ class lagrangeEligTf(networkBase.networkBase):
             self.Update()
         self.logger.info("Simulating {0} time in the model took {1} wall-clock time.".format(timeDifference, self.timer.stop()))
 
-        
+
         self.logger.debug(
             'The global time after the run command is: {}'.format(self.T))
 

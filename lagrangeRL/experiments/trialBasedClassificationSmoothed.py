@@ -46,6 +46,11 @@ class trialBasedClassificationSmoothed(trialBasedClassification):
         self.figSize = tuple(params['figSize'])
         self.tRamp = params['tRamp']
         self.params = params
+        # tuple of capping the weights, None for no clipping
+        self.cap = params['cap']
+        self.lowerValley = params['lowerValley']
+        self.upperValley = params['upperValley']
+        self.kappaDecay = params['kappaDecay']
 
 
     def setUpInput(self):

@@ -56,6 +56,11 @@ class trialBasedClassification(object):
         self.wtaStrength = params['wtaStrength']
         self.figSize = tuple(params['figSize'])
         self.params = params
+        # tuple of capping the weights, None for no clipping
+        self.cap = params['cap']
+        self.lowerValley = params['lowerValley']
+        self.upperValley = params['upperValley']
+        self.kappaDecay = params['kappaDecay']
 
     def initialize(self):
         """
@@ -69,6 +74,7 @@ class trialBasedClassification(object):
         self.setUpActivationFunction()
         self.setUpDataHandler()
         self.setUpRewardScheme()
+        self.setUpWeightDecay()
         self.simClass.initCompGraph()
         self.setUpSavingArrays()
         self.makeOutputFolder()
@@ -277,3 +283,15 @@ class trialBasedClassification(object):
                                                           self.avgRArray,
                                                           self.avgRArrays,
                                                           'Output/learningReport.png')
+
+    def setUpWeightDecay(self):
+
+        self.weightDecay = lagrangeRL.tools.weightDecayModels.flatValleyL2Decay(
+            self.lowerValley,
+            self.upperValley,
+            self.kappaDecay)
+        self.simClass.connectWeightDecay(self.weightDecay)
+
+        if self.cap == "None":
+            self.cap = None
+            self.logger.info('The weights clipping is NOT active')
