@@ -235,7 +235,7 @@ class lagrangeEligTf(networkBase.networkBase):
     def initCompGraph(self):
 
         self.createComputationalGraph()
-        self.sess = tf.Session()
+        self.sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
         self.sess.run(tf.global_variables_initializer())
 
     def resetCompGraph(self):
