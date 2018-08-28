@@ -4,6 +4,7 @@ from scipy.sparse import linalg
 import copy
 import tensorflow as tf
 import lagrangeRL.tools.tfTools as tfTools
+from lagrangeRL.tools.misc import timer
 import logging
 import coloredlogs
 
@@ -20,6 +21,9 @@ class lagrangeEligTf(networkBase.networkBase):
 
         # set up a logger
         self.logger = logging.getLogger('lagrangeEligTf')
+
+        # Set up an own timer
+        self.timer = timer()
 
     def setTfType(self, tfType):
         """
@@ -303,14 +307,21 @@ class lagrangeEligTf(networkBase.networkBase):
 
         self.logger.debug(
             'The global time before the run command is: {}'.format(self.T))
+
+
         simSteps = int(timeDifference / self.timeStep)
         if abs(simSteps * self.timeStep - timeDifference) > 1e-4:
             self.logger.warning(
                 "The simulated time is not an integer multiple of the timestep. This can lead to timing offsets!")
+
+        self.timer.start()
         for i in range(simSteps):
             if updateNudging:
                 self.target.updateNudging(self.timeStep)
             self.Update()
+        self.logger.info("Simulating {0} time in the model took {1} wall-clock time.".format(timeDifference, self.timer.stop()))
+
+        
         self.logger.debug(
             'The global time after the run command is: {}'.format(self.T))
 

@@ -6,7 +6,8 @@ tools = ['networks',
          'rewardSchemes',
          'tfTools',
          'visualization',
-         'weightDecayModels']
+         'weightDecayModels',
+         'misc']
 
 for tool in tools:
     exec('from . import {}'.format(tool))
