@@ -81,16 +81,14 @@ def plotReport(figName,
     # Plot the membrane potentials
     uMems = traces['uMem']
     make_spines(axMemb)
-    for index in range(len(uMems[0, :])):
-        axMemb.plot(timeArray, uMems[:, index])
+    axMemb.plot(timeArray, uMems)
     axMemb.set_xlabel(r'time $[ms]$')
     axMemb.set_ylabel('memb. pot. [a.u.]')
 
     # Plot the eligibility traces
     uElig = traces['eligibilities']
     make_spines(axElig)
-    for index in range(len(uElig[0, :])):
-        axElig.plot(timeArray, uElig[:, index])
+    axElig.plot(timeArray, uElig)
     axElig.set_xlabel(r'time $[ms]$')
     axElig.set_ylabel('elig. traces [a.u.]')
 
@@ -348,7 +346,7 @@ def plotLearningReport(Warray,
 
     # Plot the evolution of the weights
     make_spines(axWeights)
-    iterationArray = np.arange(1, len(Warray[:, 1]) + 1)
+    iterationArray = np.arange(0, len(Warray[:, 1]))
     axWeights.plot(iterationArray, Warray, color='r', alpha=0.4)
     axWeights.grid(True, linestyle='--')
     axWeights.set_xlabel('# iterations')
@@ -356,6 +354,7 @@ def plotLearningReport(Warray,
 
     # Plot the moving average of the reward
     make_spines(axReward)
+    iterationArray = np.arange(0, len(rewardArray))
     axReward.plot(iterationArray, rewardArray, label='mean reward')
     for key in rewardArrays:
         label = 'reward class {}'.format(key)

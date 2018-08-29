@@ -49,7 +49,7 @@ class slimExperiment(timeContinuousClassificationSmOu):
         outputRho = self.simClass.getActivities()[self.N - self.layers[-1]:]
         target = np.argmax(example['label']) + 1
         data = example['data']
-        wCurrent = self.simClass.W.data.T
+        wCurrent = self.simClass.WnoWta
         eligs = self.simClass.getEligibilities().T
         signDeltaW = np.sign(self.deltaW.T)
         lagrangeRL.tools.visualization.plotReportNoTraces(

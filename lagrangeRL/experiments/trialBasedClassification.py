@@ -183,6 +183,9 @@ class trialBasedClassification(object):
         self.deltaWBatch = 0. * copy.deepcopy(self.deltaW)
         self.Warray = []
         self.wToOutputArray = []
+        # Save the starting arrays
+        self.Warray.append(self.simClass.W.data[~self.simClass.W.mask])
+        self.wToOutputArray.append(self.simClass.W.data[self.layers[-2]:,:self.layers[-2]].flatten())
 
     def makeOutputFolder(self):
 

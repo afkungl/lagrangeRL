@@ -281,10 +281,8 @@ class lagrangeEligTf(networkBase.networkBase):
         #    print value
 
         # run the updates
-        self.timerSmall.start()
         self.sess.run(self.applyMembranePot, placeholderDict)
         self.sess.run(self.applyEligibility, placeholderDict)
-        self.logger.debug('Pure tensorflow run for a single update took {}.'.format(self.timerSmall.stop()))
         self.T = self.T + self.timeStep
 
         # Save the traces if applicable
