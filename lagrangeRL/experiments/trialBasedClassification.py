@@ -182,6 +182,7 @@ class trialBasedClassification(object):
         self.deltaW = 0. * self.deltaW
         self.deltaWBatch = 0. * copy.deepcopy(self.deltaW)
         self.Warray = []
+        self.wToOutputArray = []
 
     def makeOutputFolder(self):
 

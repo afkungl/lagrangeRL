@@ -107,6 +107,7 @@ class timeContinuousClassificationSmOu(trialBasedClassification):
             self.deltaWBatch = 0. * self.deltaWBatch
 
         self.Warray.append(self.simClass.W.data[~self.simClass.W.mask])
+        self.wToOutputArray.append(self.simClass.W.data[self.layers[-1]:,:self.layers[-1]].flatten())
 
         self.plotReport(index, output, example)
 
