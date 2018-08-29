@@ -64,3 +64,14 @@ class slimExperiment(timeContinuousClassificationSmOu):
             eligs,
             signDeltaW,
             simTime=self.simTime)
+
+    def plotFinalReport(self):
+        """
+            Plot a final report about the results of the simulation
+        """
+
+        # Plot the report
+        lagrangeRL.tools.visualization.plotSlimLearningReport(self.Warray[-1],
+                                                              self.avgRArray,
+                                                              self.avgRArrays,
+                                                              'Output/learningReport.png')

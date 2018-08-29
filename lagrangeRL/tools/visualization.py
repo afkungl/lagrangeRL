@@ -6,13 +6,16 @@ from scipy.special import expit
 from mpl_toolkits.axes_grid1.colorbar import colorbar
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
+
 def hide_axis(ax):
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
 
+
 def show_axis(ax):
     ax.get_xaxis().set_visible(True)
     ax.get_yaxis().set_visible(True)
+
 
 def make_spines(ax):
     ax.spines['top'].set_visible(False)
@@ -20,6 +23,7 @@ def make_spines(ax):
 
     ax.get_xaxis().tick_bottom()
     ax.get_yaxis().tick_left()
+
 
 def plotReport(figName,
                timeStep,
@@ -32,7 +36,7 @@ def plotReport(figName,
                wCurrent,
                eligs,
                signDeltaW,
-               simTime = None):
+               simTime=None):
     """
         Function to plot the report of one iteration
     """
@@ -41,44 +45,43 @@ def plotReport(figName,
     plt.rcParams["font.family"] = "serif"
     width = 12.
     ratio = 0.75
-    fig = plt.figure( figsize=(width,ratio*width))
-    gs_main = gs.GridSpec(2, 1, hspace=0.2, height_ratios=[1,2],
+    fig = plt.figure(figsize=(width, ratio * width))
+    gs_main = gs.GridSpec(2, 1, hspace=0.2, height_ratios=[1, 2],
                           left=0.07, right=0.93, top=.97, bottom=0.07)
     gs_upper = gs.GridSpecFromSubplotSpec(1, 2, gs_main[0, 0], wspace=0.2,
-                                           width_ratios=[1, 1])
+                                          width_ratios=[1, 1])
     gs_lower = gs.GridSpecFromSubplotSpec(2, 3, gs_main[1, 0], wspace=0.2,
-    									  hspace=.35,
-                                           width_ratios=[1, 1, 1])
+                                          hspace=.35,
+                                          width_ratios=[1, 1, 1])
     axMemb = plt.Subplot(fig, gs_upper[0])
     fig.add_subplot(axMemb)
     axElig = plt.Subplot(fig, gs_upper[1])
     fig.add_subplot(axElig)
-    axOutputRaw = plt.Subplot(fig, gs_lower[0,0])
+    axOutputRaw = plt.Subplot(fig, gs_lower[0, 0])
     fig.add_subplot(axOutputRaw)
-    axData = plt.Subplot(fig, gs_lower[0,1])
+    axData = plt.Subplot(fig, gs_lower[0, 1])
     fig.add_subplot(axData)
-    axCurrentW = plt.Subplot(fig, gs_lower[0,2])
+    axCurrentW = plt.Subplot(fig, gs_lower[0, 2])
     fig.add_subplot(axCurrentW)
-    axOutputRho = plt.Subplot(fig, gs_lower[1,0])
+    axOutputRho = plt.Subplot(fig, gs_lower[1, 0])
     fig.add_subplot(axOutputRho)
-    axDeltaW = plt.Subplot(fig, gs_lower[1,1])
+    axDeltaW = plt.Subplot(fig, gs_lower[1, 1])
     fig.add_subplot(axDeltaW)
-    axDeltaWSign = plt.Subplot(fig, gs_lower[1,2])
+    axDeltaWSign = plt.Subplot(fig, gs_lower[1, 2])
     fig.add_subplot(axDeltaWSign)
 
     if not(simTime is None):
-        lastN = int(simTime/timeStep)
-        traces['uMem'] = traces['uMem'][-lastN:,:]
-        traces['eligibilities'] = traces['eligibilities'][-lastN:,:]
-
+        lastN = int(simTime / timeStep)
+        traces['uMem'] = traces['uMem'][-lastN:, :]
+        traces['eligibilities'] = traces['eligibilities'][-lastN:, :]
 
     # make a timearray
-    timeArray = np.arange(len(traces['uMem'][:,0])) * timeStep
+    timeArray = np.arange(len(traces['uMem'][:, 0])) * timeStep
 
     # Plot the membrane potentials
     uMems = traces['uMem']
     make_spines(axMemb)
-    for index in range(len(uMems[0,:])):
+    for index in range(len(uMems[0, :])):
         axMemb.plot(timeArray, uMems[:, index])
     axMemb.set_xlabel(r'time $[ms]$')
     axMemb.set_ylabel('memb. pot. [a.u.]')
@@ -86,7 +89,7 @@ def plotReport(figName,
     # Plot the eligibility traces
     uElig = traces['eligibilities']
     make_spines(axElig)
-    for index in range(len(uElig[0,:])):
+    for index in range(len(uElig[0, :])):
         axElig.plot(timeArray, uElig[:, index])
     axElig.set_xlabel(r'time $[ms]$')
     axElig.set_ylabel('elig. traces [a.u.]')
@@ -111,10 +114,11 @@ def plotReport(figName,
     axOutputRho.set_ylabel('activity')
     axOutputRho.set_xticks(np.arange(1, nOutput + 1))
     # Add target marker to the plot
-    h = np.max(outputRho)/2.
+    h = np.max(outputRho) / 2.
     axOutputRho.scatter(target, h, marker='x', s=100, zorder=2)
     hwinner = np.max(outputRho) * .75
-    axOutputRho.scatter(np.argmax(outputRho) + 1, hwinner, marker='D', s=100, zorder=2)
+    axOutputRho.scatter(np.argmax(outputRho) + 1, hwinner,
+                        marker='D', s=100, zorder=2)
 
     # print the data
     im = np.reshape(data, figSize)
@@ -129,16 +133,16 @@ def plotReport(figName,
     show_axis(axCurrentW)
     maxAbs = np.max(np.abs(wCurrent))
     imAx = axCurrentW.imshow(wCurrent, cmap='bwr',
-                  aspect=1, interpolation='nearest',
-                  vmin=-1.*maxAbs, vmax=maxAbs)
+                             aspect=1, interpolation='nearest',
+                             vmin=-1. * maxAbs, vmax=maxAbs)
     cax = inset_axes(axCurrentW,
-                 width="5%",  # width = 10% of parent_bbox width
-                 height="100%",  # height : 50%
-                 loc=3,
-                 bbox_to_anchor=(1.05, 0., 1, 1),
-                 bbox_transform=axCurrentW.transAxes,
-                 borderpad=0,
-                 )
+                     width="5%",  # width = 10% of parent_bbox width
+                     height="100%",  # height : 50%
+                     loc=3,
+                     bbox_to_anchor=(1.05, 0., 1, 1),
+                     bbox_transform=axCurrentW.transAxes,
+                     borderpad=0,
+                     )
     cbar = colorbar(imAx, cax=cax)
     axCurrentW.set_ylabel('input')
     axCurrentW.set_xlabel('neurons')
@@ -149,16 +153,16 @@ def plotReport(figName,
     show_axis(axDeltaW)
     maxAbs = np.max(np.abs(eligs))
     imAx = axDeltaW.imshow(eligs, cmap='bwr',
-                  aspect=1, interpolation='nearest',
-                  vmin=-1.*maxAbs, vmax=maxAbs)
+                           aspect=1, interpolation='nearest',
+                           vmin=-1. * maxAbs, vmax=maxAbs)
     cax = inset_axes(axDeltaW,
-                 width="5%",  # width = 10% of parent_bbox width
-                 height="100%",  # height : 50%
-                 loc=3,
-                 bbox_to_anchor=(1.05, 0., 1, 1),
-                 bbox_transform=axDeltaW.transAxes,
-                 borderpad=0,
-                 )
+                     width="5%",  # width = 10% of parent_bbox width
+                     height="100%",  # height : 50%
+                     loc=3,
+                     bbox_to_anchor=(1.05, 0., 1, 1),
+                     bbox_transform=axDeltaW.transAxes,
+                     borderpad=0,
+                     )
     cbar = colorbar(imAx, cax=cax)
     axDeltaW.set_ylabel('input')
     axDeltaW.set_title('final elig.')
@@ -168,16 +172,16 @@ def plotReport(figName,
     # plot the sign of the appplied weight chages
     show_axis(axDeltaWSign)
     imAxSign = axDeltaWSign.imshow(signDeltaW, cmap='bwr',
-                  aspect=1, interpolation='nearest',
-                  vmin=-1., vmax=1.)
+                                   aspect=1, interpolation='nearest',
+                                   vmin=-1., vmax=1.)
     caxSign = inset_axes(axDeltaWSign,
-                 width="5%",  # width = 10% of parent_bbox width
-                 height="100%",  # height : 50%
-                 loc=3,
-                 bbox_to_anchor=(1.05, 0., 1, 1),
-                 bbox_transform=axDeltaWSign.transAxes,
-                 borderpad=0,
-                 )
+                         width="5%",  # width = 10% of parent_bbox width
+                         height="100%",  # height : 50%
+                         loc=3,
+                         bbox_to_anchor=(1.05, 0., 1, 1),
+                         bbox_transform=axDeltaWSign.transAxes,
+                         borderpad=0,
+                         )
     cbar = colorbar(imAxSign, cax=caxSign)
     axDeltaWSign.set_ylabel('input')
     axDeltaWSign.set_title(r'$\mathrm{sign} (\Delta W)$')
@@ -187,17 +191,18 @@ def plotReport(figName,
     fig.savefig(figName, dpi=200)
     plt.close(fig)
 
+
 def plotReportNoTraces(figName,
-               timeStep,
-               outputU,
-               outputRho,
-               target,
-               data,
-               figSize,
-               wCurrent,
-               eligs,
-               signDeltaW,
-               simTime = None):
+                       timeStep,
+                       outputU,
+                       outputRho,
+                       target,
+                       data,
+                       figSize,
+                       wCurrent,
+                       eligs,
+                       signDeltaW,
+                       simTime=None):
     """
         Function to plot the report of one iteration
     """
@@ -206,25 +211,24 @@ def plotReportNoTraces(figName,
     plt.rcParams["font.family"] = "serif"
     width = 12.
     ratio = 0.7
-    fig = plt.figure( figsize=(width,ratio*width))
+    fig = plt.figure(figsize=(width, ratio * width))
     gs_main = gs.GridSpec(1, 1, height_ratios=[1],
                           left=0.07, right=0.93, top=.97, bottom=0.07)
     gs_lower = gs.GridSpecFromSubplotSpec(2, 3, gs_main[0, 0], wspace=0.38,
-                        hspace=.15,
-                                           width_ratios=[1, 1, 1])
-    axOutputRaw = plt.Subplot(fig, gs_lower[0,0])
+                                          hspace=.15,
+                                          width_ratios=[1, 1, 1])
+    axOutputRaw = plt.Subplot(fig, gs_lower[0, 0])
     fig.add_subplot(axOutputRaw)
-    axData = plt.Subplot(fig, gs_lower[0,1])
+    axData = plt.Subplot(fig, gs_lower[0, 1])
     fig.add_subplot(axData)
-    axCurrentW = plt.Subplot(fig, gs_lower[0,2])
+    axCurrentW = plt.Subplot(fig, gs_lower[0, 2])
     fig.add_subplot(axCurrentW)
-    axOutputRho = plt.Subplot(fig, gs_lower[1,0])
+    axOutputRho = plt.Subplot(fig, gs_lower[1, 0])
     fig.add_subplot(axOutputRho)
-    axDeltaW = plt.Subplot(fig, gs_lower[1,1])
+    axDeltaW = plt.Subplot(fig, gs_lower[1, 1])
     fig.add_subplot(axDeltaW)
-    axDeltaWSign = plt.Subplot(fig, gs_lower[1,2])
+    axDeltaWSign = plt.Subplot(fig, gs_lower[1, 2])
     fig.add_subplot(axDeltaWSign)
-
 
     # bar plots of the membrane potentials
     nOutput = len(outputU)
@@ -246,10 +250,11 @@ def plotReportNoTraces(figName,
     axOutputRho.set_ylabel('activity')
     axOutputRho.set_xticks(np.arange(1, nOutput + 1))
     # Add target marker to the plot
-    h = np.max(outputRho)/2.
+    h = np.max(outputRho) / 2.
     axOutputRho.scatter(target, h, marker='x', s=100, zorder=2)
     hwinner = np.max(outputRho) * .75
-    axOutputRho.scatter(np.argmax(outputRho) + 1, hwinner, marker='D', s=100, zorder=2)
+    axOutputRho.scatter(np.argmax(outputRho) + 1, hwinner,
+                        marker='D', s=100, zorder=2)
 
     # print the data
     im = np.reshape(data, figSize)
@@ -264,16 +269,16 @@ def plotReportNoTraces(figName,
     show_axis(axCurrentW)
     maxAbs = np.max(np.abs(wCurrent))
     imAx = axCurrentW.imshow(wCurrent, cmap='bwr',
-                  aspect=1, interpolation='nearest',
-                  vmin=-1.*maxAbs, vmax=maxAbs)
+                             aspect=1, interpolation='nearest',
+                             vmin=-1. * maxAbs, vmax=maxAbs)
     cax = inset_axes(axCurrentW,
-                 width="5%",  # width = 10% of parent_bbox width
-                 height="100%",  # height : 50%
-                 loc=3,
-                 bbox_to_anchor=(1.05, 0., 1, 1),
-                 bbox_transform=axCurrentW.transAxes,
-                 borderpad=0,
-                 )
+                     width="5%",  # width = 10% of parent_bbox width
+                     height="100%",  # height : 50%
+                     loc=3,
+                     bbox_to_anchor=(1.05, 0., 1, 1),
+                     bbox_transform=axCurrentW.transAxes,
+                     borderpad=0,
+                     )
     cbar = colorbar(imAx, cax=cax)
     axCurrentW.set_ylabel('input')
     axCurrentW.set_xlabel('neurons')
@@ -284,16 +289,16 @@ def plotReportNoTraces(figName,
     show_axis(axDeltaW)
     maxAbs = np.max(np.abs(eligs))
     imAx = axDeltaW.imshow(eligs, cmap='bwr',
-                  aspect=1, interpolation='nearest',
-                  vmin=-1.*maxAbs, vmax=maxAbs)
+                           aspect=1, interpolation='nearest',
+                           vmin=-1. * maxAbs, vmax=maxAbs)
     cax = inset_axes(axDeltaW,
-                 width="5%",  # width = 10% of parent_bbox width
-                 height="100%",  # height : 50%
-                 loc=3,
-                 bbox_to_anchor=(1.05, 0., 1, 1),
-                 bbox_transform=axDeltaW.transAxes,
-                 borderpad=0,
-                 )
+                     width="5%",  # width = 10% of parent_bbox width
+                     height="100%",  # height : 50%
+                     loc=3,
+                     bbox_to_anchor=(1.05, 0., 1, 1),
+                     bbox_transform=axDeltaW.transAxes,
+                     borderpad=0,
+                     )
     cbar = colorbar(imAx, cax=cax)
     axDeltaW.set_ylabel('input')
     axDeltaW.set_title('final elig.')
@@ -303,16 +308,16 @@ def plotReportNoTraces(figName,
     # plot the sign of the appplied weight chages
     show_axis(axDeltaWSign)
     imAxSign = axDeltaWSign.imshow(signDeltaW, cmap='bwr',
-                  aspect=1, interpolation='nearest',
-                  vmin=-1., vmax=1.)
+                                   aspect=1, interpolation='nearest',
+                                   vmin=-1., vmax=1.)
     caxSign = inset_axes(axDeltaWSign,
-                 width="5%",  # width = 10% of parent_bbox width
-                 height="100%",  # height : 50%
-                 loc=3,
-                 bbox_to_anchor=(1.05, 0., 1, 1),
-                 bbox_transform=axDeltaWSign.transAxes,
-                 borderpad=0,
-                 )
+                         width="5%",  # width = 10% of parent_bbox width
+                         height="100%",  # height : 50%
+                         loc=3,
+                         bbox_to_anchor=(1.05, 0., 1, 1),
+                         bbox_transform=axDeltaWSign.transAxes,
+                         borderpad=0,
+                         )
     cbar = colorbar(imAxSign, cax=caxSign)
     axDeltaWSign.set_ylabel('input')
     axDeltaWSign.set_title(r'$\mathrm{sign} (\Delta W)$')
@@ -321,6 +326,7 @@ def plotReportNoTraces(figName,
 
     fig.savefig(figName, dpi=200)
     plt.close(fig)
+
 
 def plotLearningReport(Warray,
                        rewardArray,
@@ -331,8 +337,8 @@ def plotLearningReport(Warray,
     plt.rcParams["font.family"] = "serif"
     width = 8.
     ratio = 1.
-    fig = plt.figure( figsize=(width,ratio*width))
-    gs_main = gs.GridSpec(2, 1, hspace=0.2, height_ratios=[1,1],
+    fig = plt.figure(figsize=(width, ratio * width))
+    gs_main = gs.GridSpec(2, 1, hspace=0.2, height_ratios=[1, 1],
                           left=0.12, right=0.95, top=.97, bottom=0.07)
 
     axWeights = plt.Subplot(fig, gs_main[0])
@@ -342,8 +348,8 @@ def plotLearningReport(Warray,
 
     # Plot the evolution of the weights
     make_spines(axWeights)
-    iterationArray = np.arange(1, len(Warray[:,1]) + 1)
-    for index in range(len(Warray[0,:])):
+    iterationArray = np.arange(1, len(Warray[:, 1]) + 1)
+    for index in range(len(Warray[0, :])):
         axWeights.plot(iterationArray, Warray[:, index])
     axWeights.grid(True, linestyle='--')
     axWeights.set_xlabel('# iterations')
@@ -364,6 +370,48 @@ def plotLearningReport(Warray,
     fig.savefig(figName, dpi=200)
     plt.close(fig)
 
+
+def plotSlimLearningReport(Wfinal,
+                           rewardArray,
+                           rewardArrays,
+                           figName):
+
+    # make the figure and the axes grid
+    plt.rcParams["font.family"] = "serif"
+    width = 8.
+    ratio = 1.
+    fig = plt.figure(figsize=(width, ratio * width))
+    gs_main = gs.GridSpec(2, 1, hspace=0.2, height_ratios=[1, 1],
+                          left=0.12, right=0.95, top=.97, bottom=0.07)
+
+    axWeights = plt.Subplot(fig, gs_main[0])
+    fig.add_subplot(axWeights)
+    axReward = plt.Subplot(fig, gs_main[1])
+    fig.add_subplot(axReward)
+
+    # Plot the evolution of the weights
+    make_spines(axWeights)
+    axWeights.hist(Wfinal, bins=100, density=True)
+    axWeights.set_xlabel('Weights [a.u.]')
+    axWeights.set_ylabel('Frequency [1]')
+
+    # Plot the moving average of the reward
+    make_spines(axReward)
+    iterationArray = np.arange(1, len(rewardArray) + 1)
+    axReward.plot(iterationArray, rewardArray, label='mean reward')
+    for key in rewardArrays:
+        label = 'reward class {}'.format(key)
+        axReward.plot(iterationArray, rewardArrays[key], label=label)
+    axReward.grid(True, linestyle='--')
+    axReward.legend(fontsize=8)
+
+    axReward.set_xlabel('# iterations')
+    axReward.set_ylabel('mean reward')
+
+    fig.savefig(figName, dpi=200)
+    plt.close(fig)
+
+
 def plotReportWtaTest(traces,
                       timeStep,
                       rhoInput,
@@ -372,36 +420,35 @@ def plotReportWtaTest(traces,
                       eligs,
                       figName):
 
-
     # make the figure and the axes grid
     plt.rcParams["font.family"] = "serif"
     width = 12.
     ratio = 0.75
-    fig = plt.figure( figsize=(width,ratio*width))
-    gs_main = gs.GridSpec(3, 2, hspace=0.3, height_ratios=[1,1,1],
+    fig = plt.figure(figsize=(width, ratio * width))
+    gs_main = gs.GridSpec(3, 2, hspace=0.3, height_ratios=[1, 1, 1],
                           left=0.07, right=0.93, top=.97, bottom=0.07)
-    
+
     # add subplots
-    axMembPot = plt.Subplot(fig, gs_main[0,0])
+    axMembPot = plt.Subplot(fig, gs_main[0, 0])
     fig.add_subplot(axMembPot)
-    axElig = plt.Subplot(fig, gs_main[0,1])
+    axElig = plt.Subplot(fig, gs_main[0, 1])
     fig.add_subplot(axElig)
-    axInput = plt.Subplot(fig, gs_main[1,0])
+    axInput = plt.Subplot(fig, gs_main[1, 0])
     fig.add_subplot(axInput)
-    axOutputRho = plt.Subplot(fig, gs_main[1,1])
+    axOutputRho = plt.Subplot(fig, gs_main[1, 1])
     fig.add_subplot(axOutputRho)
-    axOutputU = plt.Subplot(fig, gs_main[2,0])
+    axOutputU = plt.Subplot(fig, gs_main[2, 0])
     fig.add_subplot(axOutputU)
-    axOutputElig = plt.Subplot(fig, gs_main[2,1])
+    axOutputElig = plt.Subplot(fig, gs_main[2, 1])
     fig.add_subplot(axOutputElig)
 
     # make a timearray
-    timeArray = np.arange(len(traces['uMem'][:,0])) * timeStep
+    timeArray = np.arange(len(traces['uMem'][:, 0])) * timeStep
 
     # Plot the membrane potentials
     uMems = traces['uMem']
     make_spines(axMembPot)
-    for index in range(len(uMems[0,:])):
+    for index in range(len(uMems[0, :])):
         axMembPot.plot(timeArray, uMems[:, index])
     axMembPot.set_xlabel(r'time $[ms]$')
     axMembPot.set_ylabel('memb. pot. [a.u.]')
@@ -409,7 +456,7 @@ def plotReportWtaTest(traces,
     # Plot the eligibility traces
     uElig = traces['eligibilities']
     make_spines(axElig)
-    for index in range(len(uElig[0,:])):
+    for index in range(len(uElig[0, :])):
         axElig.plot(timeArray, uElig[:, index])
     axElig.set_xlabel(r'time $[ms]$')
     axElig.set_ylabel('elig. traces [a.u.]')
@@ -449,22 +496,21 @@ def plotReportWtaTest(traces,
     show_axis(axOutputElig)
     maxAbs = np.max(np.abs(eligs))
     imAx = axOutputElig.imshow(eligs, cmap='bwr',
-                  aspect=1, interpolation='nearest',
-                  vmin=-1.*maxAbs, vmax=maxAbs)
+                               aspect=1, interpolation='nearest',
+                               vmin=-1. * maxAbs, vmax=maxAbs)
     cax = inset_axes(axOutputElig,
-                 width="5%",  # width = 10% of parent_bbox width
-                 height="100%",  # height : 50%
-                 loc=3,
-                 bbox_to_anchor=(1.05, 0., 1, 1),
-                 bbox_transform=axOutputElig.transAxes,
-                 borderpad=0,
-                 )
+                     width="5%",  # width = 10% of parent_bbox width
+                     height="100%",  # height : 50%
+                     loc=3,
+                     bbox_to_anchor=(1.05, 0., 1, 1),
+                     bbox_transform=axOutputElig.transAxes,
+                     borderpad=0,
+                     )
     cbar = colorbar(imAx, cax=cax)
     axOutputElig.set_ylabel('input')
     axOutputElig.set_title('final elig.')
     axOutputElig.set_xlabel('neurons')
     axOutputElig.set_xticks(np.arange(0, nOutput))
-
 
     # save the plot
     fig.savefig(figName, dpi=200)
@@ -483,13 +529,12 @@ def main():
     outputU = np.random.rand(3)
     outputRho = expit(outputU)
     target = 2
-    data = np.array([1,1,-1,-1])
-    figSize=(2,2)
+    data = np.array([1, 1, -1, -1])
+    figSize = (2, 2)
     wCurrent = np.random.rand(4, 3)
-    elig = np.random.rand(4,3)
-    signDeltaW = np.sign(np.random.rand(4,3) - .5)
+    elig = np.random.rand(4, 3)
+    signDeltaW = np.sign(np.random.rand(4, 3) - .5)
     print(signDeltaW)
-
 
     plotReport(figureName,
                timestep,
