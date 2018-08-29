@@ -349,8 +349,7 @@ def plotLearningReport(Warray,
     # Plot the evolution of the weights
     make_spines(axWeights)
     iterationArray = np.arange(1, len(Warray[:, 1]) + 1)
-    for index in range(len(Warray[0, :])):
-        axWeights.plot(iterationArray, Warray[:, index])
+    axWeights.plot(iterationArray, Warray, color='r', alpha=0.4)
     axWeights.grid(True, linestyle='--')
     axWeights.set_xlabel('# iterations')
     axWeights.set_ylabel('weights')
@@ -391,7 +390,7 @@ def plotSlimLearningReport(Wfinal,
 
     # Plot the evolution of the weights
     make_spines(axWeights)
-    axWeights.hist(Wfinal, bins=100, density=True)
+    axWeights.hist(Wfinal, bins=60, density=True)
     axWeights.set_xlabel('Weights [a.u.]')
     axWeights.set_ylabel('Frequency [1]')
 

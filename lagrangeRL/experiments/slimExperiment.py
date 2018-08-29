@@ -69,9 +69,10 @@ class slimExperiment(timeContinuousClassificationSmOu):
         """
             Plot a final report about the results of the simulation
         """
+        Warray = np.array(self.Warray)
 
         # Plot the report
-        lagrangeRL.tools.visualization.plotSlimLearningReport(self.Warray[-1],
-                                                              self.avgRArray,
-                                                              self.avgRArrays,
-                                                              'Output/learningReport.png')
+        lagrangeRL.tools.visualization.plotLearningReport(Warray,
+                                                          self.avgRArray,
+                                                          self.avgRArrays,
+                                                          'Output/learningReport.png')
