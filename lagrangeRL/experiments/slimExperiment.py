@@ -6,6 +6,7 @@ import sys
 import os
 import logging
 import coloredlogs
+import json
 from .timeContinuousClassificationSmOu import timeContinuousClassificationSmOu
 
 
@@ -77,3 +78,27 @@ class slimExperiment(timeContinuousClassificationSmOu):
                                                           self.avgRArray,
                                                           self.avgRArrays,
                                                           'Output/learningReport.png')
+
+
+    def runSimulation(self):
+
+        for index in range(1, self.Niter + 1):
+            self.singleIteration(index)
+            if index % 10 == 0:
+                self.plotFinalReport()
+
+        self.plotFinalReport()
+
+        self.saveResults()
+
+    def saveResults(self):
+
+        dictToSave = {'weights': np.array(self.wToOutputArray).tolist(),
+        			  'P': {'mean': self.avgRArray}}
+
+        for label in self.labels:
+        	dictToSave['P'][label] = self.avgRArrays[label]
+
+        # Save to the result to output
+        with open('Output/results.json', 'w') as outfile:
+    		json.dump(dictToSave, outfile)
