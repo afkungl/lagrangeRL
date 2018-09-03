@@ -1,6 +1,7 @@
 networkModels = ['lagrangeElig',
                  'lagrangeEligTf',
-                 'lagrangeEligTfApprox']
+                 'lagrangeEligTfApprox',
+                 'lagrangeEligTfApproxReg']
 
 for net in networkModels:
     exec('from {0} import {0}'.format(net))
