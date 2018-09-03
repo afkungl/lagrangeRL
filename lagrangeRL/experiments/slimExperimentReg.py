@@ -99,7 +99,8 @@ class slimExperimentReg(timeContinuousClassificationSmOu):
         target = np.argmax(example['label']) + 1
         data = example['data']
         wCurrent = self.simClass.WnoWta
-        eligs = self.simClass.getEligibilities().T
+        eligs = self.simClass.getRegTerm()
+        #eligs = self.simClass.getEligibilities().T
         signDeltaW = np.sign(self.deltaW.T)
         lagrangeRL.tools.visualization.plotReportNoTraces(
             figName,

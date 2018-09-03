@@ -10,7 +10,8 @@ experiments = ['trialBasedClassification',
                'timeContOuDelayed',
                'slimExperiment',
                'slimExperimentDelayed',
-               'slimExperimentVerifyBp']
+               'slimExperimentVerifyBp',
+               'slimExperimentReg']
 
 for experiment in experiments:
     exec('from .{0} import {0}'.format(experiment))

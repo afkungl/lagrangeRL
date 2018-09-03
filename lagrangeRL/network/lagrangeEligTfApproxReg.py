@@ -51,7 +51,7 @@ class lagrangeEligTfApproxReg(lagrangeEligTf):
                                     dtype=self.dtype)
         self.rhoPrimePrime = tf.Variable(np.zeros(self.N),
                                          dtype=self.dtype)
-        self.regTerm = tf.Variable(np.zeros(self.N), dtype=self.dtype)
+        self.regTerm = tf.Variable(np.zeros((self.N, self.N)), dtype=self.dtype)
         self.regTermDiff = tf.Variable(
             np.zeros((self.N, self.N)), dtype=self.dtype)
 
@@ -137,7 +137,7 @@ class lagrangeEligTfApproxReg(lagrangeEligTf):
         dependencies.append(self.eligibilityDiff.assign(self.learningRate * tfTools.tf_outer_product(
             self.u - tfTools.tf_mat_vec_dot(self.tfWnoWta, self.rho), self.rho)))
         dependencies.append(self.regTermDiff.assign(
-            self.learningRate * tf._outer_product(
+            self.learningRate * tfTools.tf_outer_product(
                             tf.nn.relu(self.uLow - self.u) -
                             tf.nn.relu(self.u - self.uHigh),
                             self.rho)
@@ -201,6 +201,10 @@ class lagrangeEligTfApproxReg(lagrangeEligTf):
             self.uTraces.append(self.sess.run(self.u))
             self.eligibilityTraces.append(
                 self.sess.run(self.eligibility)[~self.W.mask])
+
+    def getRegTerm(self):
+
+        return np.array(self.sess.run(self.regTerm))
 
     def calculateWeightUpdates(self, learningRate, modulator, uRegAlpha=0.):
         """
