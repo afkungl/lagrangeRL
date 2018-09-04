@@ -65,6 +65,27 @@ class slimExperimentReg(timeContinuousClassificationSmOu):
         if 'logLevel' in self.params:
             coloredlogs.install(level=self.params['logLevel'])
 
+    def setUpSavingArrays(self):
+
+        # Set up arrays to save results from the simulation
+
+        # Average rewards
+        self.avgR = {}
+        self.avgRArrays = {}
+        self.instantRArray = []
+        for label in self.labels:
+            self.avgR[label] = 0
+            self.avgRArrays[label] = []
+        self.avgRArray = []
+        self.deltaW = copy.deepcopy(self.W.data)
+        self.deltaW = 0. * self.deltaW
+        self.deltaWBatch = 0. * copy.deepcopy(self.deltaW)
+        self.Warray = []
+        self.wToOutputArray = []
+        # Save the starting arrays
+        self.Warray.append(self.simClass.W.data[~self.simClass.W.mask])
+        self.wToOutputArray.append(self.simClass.W.data[self.layers[-2]:,:self.layers[-2]].flatten())
+
     def setUpNetwork(self):
         """
             Set up the network with the lagrange dynamics
@@ -143,7 +164,8 @@ class slimExperimentReg(timeContinuousClassificationSmOu):
     def saveResults(self):
 
         dictToSave = {'weights': np.array(self.wToOutputArray).tolist(),
-        			  'P': {'mean': self.avgRArray}}
+        			  'P': {'mean': self.avgRArray,
+                            'instantRewards': self.instantRArray}}
 
         for label in self.labels:
         	dictToSave['P'][label] = self.avgRArrays[label]
@@ -178,8 +200,10 @@ class slimExperimentReg(timeContinuousClassificationSmOu):
         self.avgR[trueLabel] = self.avgR[trueLabel] + \
             self.gammaReward * (R - self.avgR[trueLabel])
         self.avgRArray.append(np.mean(self.avgR.values()))
+        self.instantRArray.append({trueLabel: R})
         for key in self.avgRArrays:
             self.avgRArrays[key].append(self.avgR[key])
+            
 
         # Update the weights
         modavgR = np.min([np.max([self.avgR[trueLabel], 0.]), 1.])
