@@ -219,7 +219,7 @@ class slimExperimentRegDelay(timeContinuousClassificationSmOu):
             
 
         # Update the weights
-        modavgR = np.min([np.max([self.avgR[trueLabel], 0.]), 1.])
+        modavgR = np.min([np.max([self.avgR[trueLabel], -0.9]), 1.])
         self.logger.debug('The avgR for the label {0} is {1}'.format(
             trueLabel, self.avgR[trueLabel]))
         self.logger.debug('The modavgR for the label {0} is {1}'.format(
