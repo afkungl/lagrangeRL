@@ -10,7 +10,7 @@ import json
 from .timeContinuousClassificationSmOu import timeContinuousClassificationSmOu
 
 
-class slimExperimentReg(timeContinuousClassificationSmOu):
+class slimExperimentRegVerifyBp(timeContinuousClassificationSmOu):
 
     def __init__(self, params):
         """
@@ -108,7 +108,7 @@ class slimExperimentReg(timeContinuousClassificationSmOu):
         self.simClass.setTauEligibility(self.tauElig)
         self.simClass.saveTraces(False)
         wMaxFixed = np.zeros((self.N, self.N))
-        wMaxFixed[-self.layers[-1]:, -self.layers[-1]:] = 1
+        wMaxFixed[-self.layers[0]:, -self.layers[0]:] = 1
         self.simClass.setFixedSynapseMask(wMaxFixed.astype(bool))
 
     def plotReport(self, index, output, example):

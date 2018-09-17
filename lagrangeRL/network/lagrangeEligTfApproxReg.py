@@ -214,5 +214,5 @@ class lagrangeEligTfApproxReg(lagrangeEligTf):
                 --- learningRate: the learning rate of the rule
                 --- modulator: the neuromodulatin signal
         """
-        return learningRate * (modulator * self.sess.run(self.eligibility) + \
+        return learningRate * (1./self.tauEligibility) * (modulator * self.sess.run(self.eligibility) + \
                 uRegAlpha * self.sess.run(self.regTerm))
