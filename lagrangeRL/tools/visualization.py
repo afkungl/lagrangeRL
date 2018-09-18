@@ -88,7 +88,7 @@ def plotReport(figName,
     # Plot the eligibility traces
     uElig = traces['eligibilities']
     make_spines(axElig)
-    axElig.plot(timeArray, uElig)
+    axElig.plot(timeArray, uElig[:,:10])
     axElig.set_xlabel(r'time $[ms]$')
     axElig.set_ylabel('elig. traces [a.u.]')
 

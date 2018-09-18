@@ -112,6 +112,7 @@ class lagrangeEligTf(networkBase.networkBase):
         :param actFunc: function with one argument and one return
         """
 
+        self.actFuncObject = actFuncObject
         self.actFunc = actFuncObject.value
         self.actFuncPrime = actFuncObject.valuePrime
         self.actFuncPrimePrime = actFuncObject.valuePrimePrime
