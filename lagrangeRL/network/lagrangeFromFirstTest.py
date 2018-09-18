@@ -9,7 +9,7 @@ import logging
 import coloredlogs
 
 
-class lagrangeFromFirst2(lagrangeEligTf):
+class lagrangeFromFirstTest(lagrangeEligTf):
 
     def __init__(self):
         """
@@ -133,45 +133,29 @@ class lagrangeFromFirst2(lagrangeEligTf):
         with tf.control_dependencies(dependencies):
 
             # frequently used tensors are claculated early on
-            wNoWtaT = tf.transpose(self.tfWnoWta)
-            wNoWtaRho = tfTools.tf_mat_vec_dot(self.tfWnoWta, self.rho)
-            c = tfTools.tf_mat_vec_dot(wNoWtaT, self.u - wNoWtaRho)
+            wT = tf.transpose(self.tfW)
+            wRho = tfTools.tf_mat_vec_dot(self.tfW, self.rho)
+            c = tfTools.tf_mat_vec_dot(wT, self.u - wRho)
             uOut = self.u * self.targetMaskTf
             uDotOut = self.uDotOld * self.targetMaskTf
-            wOnlyWtaT = tf.transpose(self.tfOnlyWta)
-            wOnlyWtaRho = tfTools.tf_mat_vec_dot(self.tfOnlyWta, self.rho)
-            cOnlyWta = tfTools.tf_mat_vec_dot(wOnlyWtaT, uOut - wOnlyWtaRho)
 
             # The regular component with lookahead
             reg = tfTools.tf_mat_vec_dot(
-                self.tfWnoWta, self.rho + self.rhoPrime * self.uDotOld) - self.u
+                self.tfW, self.rho + self.rhoPrime * self.uDotOld) - self.u
 
             # Error term from the vanilla lagrange
             eVfirst = (-1.) * self.rhoPrime * c
             eVsecond = (-1.) * (self.rhoPrimePrime * self.uDotOld) * c
             eVthird = (-1.) * self.rhoPrime * \
                 tfTools.tf_mat_vec_dot(
-                wNoWtaT,
+                wT,
                 self.uDotOld - tfTools.tf_mat_vec_dot(
-                    self.tfWnoWta,
+                    self.tfW,
                     self.rhoPrime * self.uDotOld)
             )
             eV = eVfirst + self.tau * (eVsecond + eVthird)
 
-            # terms from the winner nudges all circuit
-            eWnaFirst = tfTools.tf_mat_vec_dot(
-                self.tfOnlyWta, self.rho + self.rhoPrime * uDotOut) - (uOut)
-            eWnaSecond = (-1.) * self.rhoPrime * cOnlyWta
-            eWnaThird = (-1.) * (self.rhoPrimePrime * uDotOut) * cOnlyWta
-            eWnaFourth = (-1.) * self.rhoPrime * \
-                tfTools.tf_mat_vec_dot(
-                wOnlyWtaT,
-                uDotOut - tfTools.tf_mat_vec_dot(
-                    self.tfOnlyWta,
-                    self.rhoPrime * uDotOut)
-            )
-            eWna = self.alphaWna * self.beta * \
-                (eWnaFirst + eWnaSecond + self.tau * (eWnaThird + eWnaFourth))
+            
 
             # Terms from the exploration noise term
             noise = self.targetTf * self.targetMaskTf
@@ -179,7 +163,7 @@ class lagrangeFromFirst2(lagrangeEligTf):
             eNoise = self.alphaNoise * self.beta * \
                 ((noise + self.tau * noiseDot) - (uOut + self.tau * uDotOut))
 
-        self.uDiff = (1. / self.tau) * (reg + eV + eWna + eNoise)
+        self.uDiff = (1. / self.tau) * (reg + eV + eNoise)
         dependencies.append(self.uDiff)
         dependencies.append(self.uDotOld.assign(self.uDiff))
 

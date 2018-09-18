@@ -10,7 +10,7 @@ import json
 from .timeContinuousClassificationSmOu import timeContinuousClassificationSmOu
 
 
-class experimentWithFirst2(timeContinuousClassificationSmOu):
+class experimentWithFirstTest(timeContinuousClassificationSmOu):
 
     def __init__(self, params):
         """
@@ -120,7 +120,7 @@ class experimentWithFirst2(timeContinuousClassificationSmOu):
             offset=self.initWeightMean,
             noiseMagnitude=self.initWeightWidth)
         # Lagrange network
-        self.simClass = lagrangeRL.network.lagrangeFromFirst2()
+        self.simClass = lagrangeRL.network.lagrangeFromFirstTest()
         self.simClass.setLearningRate(1.)
         self.simClass.setTimeStep(self.timeStep)
         self.simClass.setTau(self.tau)
