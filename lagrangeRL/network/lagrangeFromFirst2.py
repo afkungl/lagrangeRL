@@ -147,9 +147,9 @@ class lagrangeFromFirst2(lagrangeEligTf):
                 self.tfWnoWta, self.rho + self.rhoPrime * self.uDotOld) - self.u
 
             # Error term from the vanilla lagrange
-            eVfirst = (-1.) * self.rhoPrime * c
-            eVsecond = (-1.) * (self.rhoPrimePrime * self.uDotOld) * c
-            eVthird = (-1.) * self.rhoPrime * \
+            eVfirst = self.rhoPrime * c
+            eVsecond = (self.rhoPrimePrime * self.uDotOld) * c
+            eVthird = self.rhoPrime * \
                 tfTools.tf_mat_vec_dot(
                 wNoWtaT,
                 self.uDotOld - tfTools.tf_mat_vec_dot(
@@ -160,10 +160,10 @@ class lagrangeFromFirst2(lagrangeEligTf):
 
             # terms from the winner nudges all circuit
             eWnaFirst = tfTools.tf_mat_vec_dot(
-                self.tfOnlyWta, self.rho + self.rhoPrime * uDotOut) - (uOut)
-            eWnaSecond = (-1.) * self.rhoPrime * cOnlyWta
-            eWnaThird = (-1.) * (self.rhoPrimePrime * uDotOut) * cOnlyWta
-            eWnaFourth = (-1.) * self.rhoPrime * \
+                self.tfOnlyWta, self.rho + self.rhoPrime * uDotOut) - (uOut + uDotOut * self.tau)
+            eWnaSecond = self.targetMaskTf * self.rhoPrime * cOnlyWta
+            eWnaThird = (self.targetMaskTf * self.rhoPrimePrime * uDotOut) * cOnlyWta
+            eWnaFourth = self.rhoPrime * \
                 tfTools.tf_mat_vec_dot(
                 wOnlyWtaT,
                 uDotOut - tfTools.tf_mat_vec_dot(
