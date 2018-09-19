@@ -141,12 +141,12 @@ class lagrangeFromFirstTest(lagrangeEligTf):
 
             # The regular component with lookahead
             reg = tfTools.tf_mat_vec_dot(
-                self.tfW, self.rho + self.rhoPrime * self.uDotOld) - self.u
+                self.tfW, self.rho + self.rhoPrime * self.uDotOld * self.tau) - self.u
 
             # Error term from the vanilla lagrange
-            eVfirst = (-1.) * self.rhoPrime * c
-            eVsecond = (-1.) * (self.rhoPrimePrime * self.uDotOld) * c
-            eVthird = (-1.) * self.rhoPrime * \
+            eVfirst = self.rhoPrime * c
+            eVsecond = (self.rhoPrimePrime * self.uDotOld) * c
+            eVthird = self.rhoPrime * \
                 tfTools.tf_mat_vec_dot(
                 wT,
                 self.uDotOld - tfTools.tf_mat_vec_dot(
@@ -158,10 +158,8 @@ class lagrangeFromFirstTest(lagrangeEligTf):
             
 
             # Terms from the exploration noise term
-            noise = self.targetTf * self.targetMaskTf
-            noiseDot = self.targetPrimeTf * self.targetMaskTf
-            eNoise = self.alphaNoise * self.beta * \
-                ((noise + self.tau * noiseDot) - (uOut + self.tau * uDotOut))
+            eNoise = self.alphaNoise * self.beta * self.targetMaskTf * \
+                ((self.targetTf + self.tau * self.targetPrimeTf) - (self.u + self.tau * self.uDotOld))
 
         self.uDiff = (1. / self.tau) * (reg + eV + eNoise)
         dependencies.append(self.uDiff)
