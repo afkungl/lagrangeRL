@@ -124,8 +124,6 @@ class trialBasedClassification(object):
         self.simClass.addMatrix(self.W)
         self.simClass.setTauEligibility(self.tauElig)
         self.simClass.saveTraces(True)
-        wMaxFixed = np.zeros((self.N, self.N))
-        wMaxFixed[-self.layers[-1]:, -self.layers[-1]:] = 1
         self.simClass.setFixedSynapseMask(wMaxFixed.astype(bool))
 
     def setUpInput(self):
