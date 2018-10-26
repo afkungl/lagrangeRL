@@ -17,7 +17,8 @@ experiments = ['trialBasedClassification',
                'experimentWithFirst',
                'experimentWithFirst2',
                'experimentWithFirstTest',
-               'experimentWithFirst2FullRew']
+               'experimentWithFirst2FullRew',
+               'expOptimizedLagrange']
 
 for experiment in experiments:
     exec('from .{0} import {0}'.format(experiment))

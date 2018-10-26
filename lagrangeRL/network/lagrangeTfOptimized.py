@@ -7,6 +7,7 @@ import lagrangeRL.tools.tfTools as tfTools
 from lagrangeRL.tools.misc import timer
 import logging
 import coloredlogs
+import sys
 
 
 class lagrangeTfOptimized(networkBase.networkBase):
@@ -77,6 +78,21 @@ class lagrangeTfOptimized(networkBase.networkBase):
 
         self.beta = beta
 
+    def setRegParameters(self, uLow, uHigh, kappaDecay):
+        """
+        Set the regularization parameters
+        """
+
+        self.uLow = uLow
+        self.uHigh = uHigh
+        self.kappaDecay = kappaDecay
+
+    def setCostWeightings(self, alphaWna, alphaNoise, beta):
+
+        self.alphaWna = alphaWna
+        self.alphaNoise = alphaNoise
+        self.beta = beta
+
     def initSimulation(self):
         """
         Set the initial rBar and uDiff values to 0
@@ -108,14 +124,23 @@ class lagrangeTfOptimized(networkBase.networkBase):
 
     def connectActivationFunction(self, actFuncObject):
         """
-
-        :param actFunc: function with one argument and one return
+        Connects the methods of the activation function object.
+        This makes sure that the activation functions can be changed easily and independently from this network code.
+        
         """
 
         self.actFuncObject = actFuncObject
         self.actFunc = actFuncObject.value
         self.actFuncPrime = actFuncObject.valuePrime
         self.actFuncPrimePrime = actFuncObject.valuePrimePrime
+
+    def setPlasticSynapses(self, Wplastic):
+        """
+            set as boolean mask the synapses which can change during training
+            The plastic synapses are marked with True or 1
+        """
+
+        self.Wplastic = Wplastic
 
     def createComputationalGraph(self):
         """
@@ -125,7 +150,7 @@ class lagrangeTfOptimized(networkBase.networkBase):
         ######################################
         # Variables that are needed
         self.u = tf.Variable(np.zeros(self.N), dtype=self.dtype)
-        self.uNoise = tf.Variable(np.zeros(self.N), dtype=self.dtype)
+        uNoise = tf.Variable(np.zeros(self.N), dtype=self.dtype)
         self.uDotOld = tf.Variable(np.zeros(self.N), dtype=self.dtype)
         self.eligibility = tf.Variable(
             np.zeros((self.N, self.N)), dtype=self.dtype)
@@ -141,8 +166,7 @@ class lagrangeTfOptimized(networkBase.networkBase):
                                         dtype=self.dtype)
         # set up a mask for the learned weights in self.wTfNoWta
         # note that W.mask must omit the WTA network
-        self.wNoWtaMask = tf.Variable(np.logical_not(self.W.mask).astype(int),
-                                      dtype=self.dtype)
+        self.wNoWtaMask = tf.Variable(self.Wplastic.astype(float), dtype=self.dtype)
 
         #####################################
         # Placeholders
@@ -185,18 +209,19 @@ class lagrangeTfOptimized(networkBase.networkBase):
         ####################################
         # Calculate the activations functions using the updated values
         with tf.control_dependencies([applyInputU, applyInputUDot]):
-            rho = self.actFunc(self.u)
+            self.rho = self.actFunc(self.u)
             rhoPrime = self.actFuncPrime(self.u)
             rhoPrimePrime = self.actFuncPrimePrime(self.u)
+        self.rhoOutput = self.actFunc(self.u)
 
         ###################################
         # Update the exploration noise on the output neurons
-        uNoiseOut = tf.slice(self.uNoise, [nFull - nOutput], [-1])
+        uNoiseOut = tf.slice(uNoise, [nFull - nOutput], [-1])
         duOutNoise = self.noiseTheta * (self.noiseMean - uNoiseOut) * self.timeStep + self.noiseSigma * \
             np.sqrt(self.timeStep) * \
             tf.random_normal([nOutput], mean=0., stddev=1.0, dtype=self.dtype)
         updateNoise = tf.scatter_update(uNoise,
-                                        np.arange(nFull - nOutput, nOutput),
+                                        np.arange(nFull - nOutput, nFull),
                                         uNoiseOut + duOutNoise)
 
         ####################################
@@ -209,17 +234,17 @@ class lagrangeTfOptimized(networkBase.networkBase):
 
             # frequently used tensors are claculated early on
             wNoWtaT = tf.transpose(self.wTfNoWta)
-            wNoWtaRho = tfTools.tf_mat_vec_dot(self.wTfNoWta, rho)
+            wNoWtaRho = tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho)
             c = tfTools.tf_mat_vec_dot(wNoWtaT, self.u - wNoWtaRho)
             uOut = self.u * self.outputMaskTf
             uDotOut = self.uDotOld * self.outputMaskTf
             wOnlyWtaT = tf.transpose(self.wTfOnlyWta)
-            wOnlyWtaRho = tfTools.tf_mat_vec_dot(self.wTfOnlyWta, rho)
+            wOnlyWtaRho = tfTools.tf_mat_vec_dot(self.wTfOnlyWta, self.rho)
             cOnlyWta = tfTools.tf_mat_vec_dot(wOnlyWtaT, uOut - wOnlyWtaRho)
 
             # The regular component with lookahead
             reg = tfTools.tf_mat_vec_dot(
-                self.wTfNoWta, rho + rhoPrime * self.uDotOld) - self.u
+                self.wTfNoWta, self.rho + rhoPrime * self.uDotOld) - self.u
 
             # Error term from the vanilla lagrange
             eVfirst = rhoPrime * c
@@ -235,7 +260,7 @@ class lagrangeTfOptimized(networkBase.networkBase):
 
             # terms from the winner nudges all circuit
             eWnaFirst = tfTools.tf_mat_vec_dot(
-                self.wTfOnlyWta, rho + rhoPrime * uDotOut) - (uOut + uDotOut * self.tau)
+                self.wTfOnlyWta, self.rho + rhoPrime * uDotOut) - (uOut + uDotOut * self.tau)
             eWnaSecond = self.outputMaskTf * rhoPrime * cOnlyWta
             eWnaThird = (self.outputMaskTf *
                          rhoPrimePrime * uDotOut) * cOnlyWta
@@ -256,28 +281,28 @@ class lagrangeTfOptimized(networkBase.networkBase):
         uDiff = (1. / self.tau) * (reg + eV + eWna + eNoise)
         saveOldUDot = self.uDotOld.assign(uDiff)
 
-        with tf.control_dependencies(saveOldUDot):
+        with tf.control_dependencies([saveOldUDot]):
 
             self.applyMembranePot = tf.scatter_update(self.u, np.arange(
                 nInput, nFull), tf.slice(self.u, [nInput], [-1]) + self.timeStep * tf.slice(uDiff, [nInput], [-1]))
 
-        self.updateEligiblity = self.eligibility.assign(
-            (self.eligibility + self.timeStep * tfTools.tf_outer_product(
-                self.u - tfTools.tf_mat_vec_dot(self.tfWnoWta, rho), rho)) * tf.exp(-1. * self.timeStep / self.tauEligibility)
-        )
-        self.updateRegEligibility = self.regEligibility.assign(
-            (self.regEligibility + self.timeStep * tfTools.tf_outer_product(
-                tf.nn.relu(self.uLow - self.u) -
-                tf.nn.relu(self.u - self.uHigh),
-                rho)) * tf.exp(-1. * self.timeStep / self.tauEligibility)
-        )
+            self.updateEligiblity = self.eligibility.assign(
+                (self.eligibility + self.timeStep * tfTools.tf_outer_product(
+                    self.u - tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho), self.rho)) * tf.exp(-1. * self.timeStep / self.tauEligibility)
+            )
+            self.updateRegEligibility = self.regEligibility.assign(
+                (self.regEligibility + self.timeStep * tfTools.tf_outer_product(
+                    tf.nn.relu(self.uLow - self.u) -
+                    tf.nn.relu(self.u - self.uHigh),
+                    self.rho)) * tf.exp(-1. * self.timeStep / self.tauEligibility)
+            )
 
         ###############################################
         ## Node to update the weights of the network ##
         ###############################################
 
-        self.updateW = self.wNoWtaT.assign(self.wNoWtaT + (self.learningRate / self.tauEligibility) * (
-            self.modulator * self.eligibility + self.regEligibility) * self.wNoWtaMask)
+        self.updateW = self.wTfNoWta.assign(self.wTfNoWta + (self.learningRate / self.tauEligibility) * (
+            self.modulator * self.eligibility + self.kappaDecay * self.regEligibility) * self.wNoWtaMask)
 
     def setNoiseParameter(self, mean, std, corrTime):
         """
@@ -306,15 +331,6 @@ class lagrangeTfOptimized(networkBase.networkBase):
         self.T = 0.
         self.uTraces = []
         self.eligibilityTraces = []
-
-    def applyInput(self):
-        """
-        Set the membrane potential of the neurons according to the input
-        """
-
-        # set the value of the input neurons form the input
-        [self.inputValue, self.inputPrime,
-            self.inputMask] = self.input.getInput(self.T)
 
     def Update(self):
         """
@@ -353,7 +369,7 @@ class lagrangeTfOptimized(networkBase.networkBase):
         self.onlyWta[self.N - nOutputNeurons:, self.N - nOutputNeurons:] = \
             self.W.data[self.N - nOutputNeurons:, self.N - nOutputNeurons:]
 
-    def run(self, timeDifference, updateNudging=False):
+    def run(self, timeDifference):
         """
             run the simulation for the given time Difference
         """
@@ -387,7 +403,7 @@ class lagrangeTfOptimized(networkBase.networkBase):
             Returns the rho of the outpur. Attention this is not the instantaneous spiking probability
         """
 
-        return self.sess.run(self.rho)
+        return self.sess.run(self.rhoOutput)
 
     def getEligibilities(self):
         """
@@ -407,25 +423,14 @@ class lagrangeTfOptimized(networkBase.networkBase):
         return {'uMem': uMem,
                 'eligibilities': elig}
 
-    def updateWeights(self, learningRate, modulator):
-        """
-            Update the weights according to a three factor learning rule.
-            Update = (eligibility trace) * (learning rate) * (modulator)
-
-            Keywords:
-                --- learningRate: the learning rate of the rule
-                --- modulator: the neuromodulatin signal
-        """
-        wDummy = copy.deepcopy(self.W)
-        self.W = self.W + learningRate * modulator * self.eligibility
-        self.W[self.maskIndex] = 0
-        self.W[self.wMaxFixed] = wDummy[self.wMaxFixed]
-
-
     def applyWeightUpdates(self, modulator):
 
-        sess.run(self.updateW, self.modulator: modulator)
+        return self.sess.run(self.updateW, {self.modulator: modulator})
 
+    def setFixedSynapseMask(self, fixedSynapses):
+        """ set a mask for the synapses which stay fixed during training """
+
+        self.wMaxFixed = fixedSynapses
 
 
 if __name__ == "__main__":
