@@ -68,6 +68,12 @@ class expOptimizedLagrange(object):
         self.alphaNoise = params['alphaNoise']
         self.beta = params['beta']
 
+        # reporting
+        if 'reportFrequency' in params:
+            self.reportFrequency = params['reportFrequency']
+        else:
+            self.reportFrequency = 1
+
         self.params = params
 
     def initialize(self):
@@ -195,6 +201,7 @@ class expOptimizedLagrange(object):
 
         # Set up arrays to save results from the simulation
         self.avgRewards = {}
+        self.meanReward = 0.
         self.avgRArrays = {}
         for label in self.labels:
             self.avgRewards[label] = 0
@@ -233,9 +240,10 @@ class expOptimizedLagrange(object):
         Reward = self.rewardScheme.obtainReward(inputExample['label'], output)
         self.avgRewards[trueLabel] = self.avgRewards[trueLabel] + \
             self.gammaReward * (Reward - self.avgRewards[trueLabel])
+        self.meanReward = self.meanReward + self.gammaReward * (Reward - self.meanReward)
 
         # save the averaged reward array
-        self.avgRArray.append(np.mean(self.avgRewards.values()))
+        self.avgRArray.append(self.meanReward)
         for key in self.avgRArrays:
             self.avgRArrays[key].append(self.avgRewards[key])
 
@@ -243,7 +251,7 @@ class expOptimizedLagrange(object):
         # The reward goes modulated into the update formula.
         # This is necessary such that the well predicted negativ reward does
         # cause the learning to stop but a well predicted positiv reward does
-        modulatedAvgReward = np.max([self.avgRArray[-1], -0.90])
+        modulatedAvgReward = np.max([self.meanReward, -0.90])
         self.Wnew = self.simClass.applyWeightUpdates(Reward - modulatedAvgReward)
 
         # save the weights in an array
@@ -251,7 +259,8 @@ class expOptimizedLagrange(object):
         self.wToOutputArray.append(self.simClass.W.data[self.layers[-2]:,:self.layers[-2]].flatten())
 
         # Plot reports
-        self.plotReport(index, output, inputExample)
+        if index%self.reportFrequency == 0:
+            self.plotReport(index, output, inputExample)
 
         # run the simulation of the example until ramp down
         self.simClass.run(self.tRamp)
