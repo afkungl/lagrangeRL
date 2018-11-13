@@ -302,7 +302,7 @@ class lagrangeTfOptimized(networkBase.networkBase):
         ###############################################
 
         self.updateW = self.wTfNoWta.assign(self.wTfNoWta + (self.learningRate / self.tauEligibility) * (
-            self.modulator * self.eligibility + self.kappaDecay * self.regEligibility) * self.wNoWtaMask)
+            self.modulator * self.eligibility + self.kappaDecay * self.regEligibility) * self.Wplastic)
 
     def setNoiseParameter(self, mean, std, corrTime):
         """

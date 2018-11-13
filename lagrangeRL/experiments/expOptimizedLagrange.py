@@ -104,6 +104,7 @@ class expOptimizedLagrange(object):
             self.singleIteration(index)
             if index % 10 == 0:
                 self.plotFinalReport()
+                self.saveResults()
 
         self.plotFinalReport()
 
@@ -240,7 +241,7 @@ class expOptimizedLagrange(object):
         Reward = self.rewardScheme.obtainReward(inputExample['label'], output)
         self.avgRewards[trueLabel] = self.avgRewards[trueLabel] + \
             self.gammaReward * (Reward - self.avgRewards[trueLabel])
-        self.meanReward = self.meanReward + self.gammaReward * (Reward - self.meanReward)
+        
 
         # save the averaged reward array
         self.avgRArray.append(self.meanReward)
@@ -251,8 +252,12 @@ class expOptimizedLagrange(object):
         # The reward goes modulated into the update formula.
         # This is necessary such that the well predicted negativ reward does
         # cause the learning to stop but a well predicted positiv reward does
-        modulatedAvgReward = np.max([self.meanReward, -0.90])
-        self.Wnew = self.simClass.applyWeightUpdates(Reward - modulatedAvgReward)
+        if index == 1:
+            self.Wnew = self.simClass.applyWeightUpdates(Reward)
+        else:
+            modulatedAvgReward = np.max([self.meanReward, -0.90])
+            self.Wnew = self.simClass.applyWeightUpdates(Reward - modulatedAvgReward)
+        self.meanReward = self.meanReward + self.gammaReward * (Reward - self.meanReward)
 
         # save the weights in an array
         self.Warray.append(self.Wnew[~self.simClass.W.mask])
