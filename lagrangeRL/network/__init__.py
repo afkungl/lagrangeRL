@@ -5,7 +5,8 @@ networkModels = ['lagrangeElig',
                  'lagrangeFromFirst',
                  'lagrangeFromFirst2',
                  'lagrangeFromFirstTest',
-                 'lagrangeTfOptimized']
+                 'lagrangeTfOptimized',
+                 'lagrangeTfOptimized2']
 
 for net in networkModels:
     exec('from {0} import {0}'.format(net))

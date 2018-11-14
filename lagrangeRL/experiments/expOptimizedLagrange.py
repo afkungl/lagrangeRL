@@ -121,7 +121,7 @@ class expOptimizedLagrange(object):
             noiseMagnitude=self.initWeightWidth,
             noWtaMask=True)
         # Lagrange network
-        self.simClass = lagrangeRL.network.lagrangeTfOptimized()
+        self.simClass = lagrangeRL.network.lagrangeTfOptimized2()
         self.simClass.setPlasticSynapses(np.logical_not(self.W.mask))
         self.simClass.setLearningRate(self.learningRate)
         self.simClass.setTimeStep(self.timeStep)
@@ -165,7 +165,7 @@ class expOptimizedLagrange(object):
             Set up the target nudging on the output layer. This is necessary to get a target mask
         """
         # Set up the empty target
-        value = np.zeros(self.N) 
+        value = np.zeros(self.N)
         mask = np.zeros(self.N)
         mask[self.N - self.layers[-1]:] = 1
         self.target = lagrangeRL.tools.targetModels.constantTarget(
@@ -196,7 +196,6 @@ class expOptimizedLagrange(object):
         self.rewardScheme = lagrangeRL.tools.rewardSchemes.maxClassification(
             self.trueReward,
             self.falseReward)
-        
 
     def setUpSavingArrays(self):
 
@@ -236,12 +235,12 @@ class expOptimizedLagrange(object):
         self.simClass.run(self.simTime - self.tRamp)
 
         # get the output and obtain the reward
-        output = self.simClass.getMembPotentials()[self.N - self.layers[-1]:]
+        #output = self.simClass.getMembPotentials()[self.N - self.layers[-1]:]
+        output = self.simClass.getLowPassActivity()[self.N - self.layers[-1]:]
         trueLabel = self.labels[np.argmax(inputExample['label'])]
         Reward = self.rewardScheme.obtainReward(inputExample['label'], output)
         self.avgRewards[trueLabel] = self.avgRewards[trueLabel] + \
             self.gammaReward * (Reward - self.avgRewards[trueLabel])
-        
 
         # save the averaged reward array
         self.avgRArray.append(self.meanReward)
@@ -256,15 +255,18 @@ class expOptimizedLagrange(object):
             self.Wnew = self.simClass.applyWeightUpdates(Reward)
         else:
             modulatedAvgReward = np.max([self.meanReward, -0.90])
-            self.Wnew = self.simClass.applyWeightUpdates(Reward - modulatedAvgReward)
-        self.meanReward = self.meanReward + self.gammaReward * (Reward - self.meanReward)
+            self.Wnew = self.simClass.applyWeightUpdates(
+                Reward - modulatedAvgReward)
+        self.meanReward = self.meanReward + \
+            self.gammaReward * (Reward - self.meanReward)
 
         # save the weights in an array
         self.Warray.append(self.Wnew[~self.simClass.W.mask])
-        self.wToOutputArray.append(self.simClass.W.data[self.layers[-2]:,:self.layers[-2]].flatten())
+        self.wToOutputArray.append(
+            self.simClass.W.data[self.layers[-2]:, :self.layers[-2]].flatten())
 
         # Plot reports
-        if index%self.reportFrequency == 0:
+        if index % self.reportFrequency == 0:
             self.plotReport(index, output, inputExample)
 
         # run the simulation of the example until ramp down
@@ -275,11 +277,12 @@ class expOptimizedLagrange(object):
 
         # Log intermediate results
         self.logger.info("The obtained reward is {}".format(Reward))
-        self.logger.info("The current average reward is: {}".format(self.avgRArray[-1]))
+        self.logger.info(
+            "The current average reward is: {}".format(self.avgRArray[-1]))
         self.logger.debug("The current weights: {}".format(self.Wnew))
         self.logger.info("Iteration {} is done.".format(index))
-        self.logger.debug("No WTA mask: {}".format(self.simClass.sess.run(self.simClass.wNoWtaMask)))
-
+        self.logger.debug("No WTA mask: {}".format(
+            self.simClass.sess.run(self.simClass.wNoWtaMask)))
 
     def plotReport(self, index, output, example):
 
@@ -299,7 +302,8 @@ class expOptimizedLagrange(object):
             self.deltaW[self.layers[0]:, :self.N - self.layers[1]].T)
         """
         wCurrent = self.Wnew
-        eligs = self.simClass.getEligibilities().T
+        eligs = self.simClass.getEligibilities()
+        eligs[:self.layers[0],:self.layers[0]] = 0.
         signDeltaW = np.sign(self.deltaW.T)
         lagrangeRL.tools.visualization.plotReport(
             figName,

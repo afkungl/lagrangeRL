@@ -34,8 +34,8 @@ class expOptimizedLagrangeVerifyBp(expOptimizedLagrange):
                 "A network with {} layers was specified! This experiment is designed only for networks with 3 layers.".format(len(self.layers)))
             sys.exit()
         Wplastic = np.zeros((self.N, self.N))
-        Wplastic[self.layers[0]:self.layers[0] + self.layers[1], :self.layers[0]]
-        self.simClass.setPlasticSynapses(np.logical_not(self.W.mask))
+        Wplastic[self.layers[0]:self.layers[0] + self.layers[1], :self.layers[0]] = 1
+        self.simClass.setPlasticSynapses(Wplastic)
         self.simClass.setLearningRate(self.learningRate)
         self.simClass.setTimeStep(self.timeStep)
         self.simClass.setTau(self.tau)

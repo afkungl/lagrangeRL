@@ -25,7 +25,8 @@ class expOptimizedLagrangeDelay(expOptimizedLagrange):
         self.simClass.run(self.simTime - self.tRamp)
 
         # get the output and obtain the reward
-        output = self.simClass.getMembPotentials()[self.N - self.layers[-1]:]
+        #output = self.simClass.getMembPotentials()[self.N - self.layers[-1]:]
+        output = self.simClass.getLowPassActivity()[self.N - self.layers[-1]:]
         trueLabel = self.labels[np.argmax(inputExample['label'])]
         Reward = self.rewardScheme.obtainReward(inputExample['label'], output)
         self.avgRewards[trueLabel] = self.avgRewards[trueLabel] + \

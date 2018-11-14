@@ -150,6 +150,7 @@ class lagrangeTfOptimized(networkBase.networkBase):
         ######################################
         # Variables that are needed
         self.u = tf.Variable(np.zeros(self.N), dtype=self.dtype)
+        self.rLowPass = tf.Variable(np.zeros(self.N), dtype=self.dtype)
         uNoise = tf.Variable(np.zeros(self.N), dtype=self.dtype)
         self.uDotOld = tf.Variable(np.zeros(self.N), dtype=self.dtype)
         self.eligibility = tf.Variable(
@@ -244,7 +245,7 @@ class lagrangeTfOptimized(networkBase.networkBase):
 
             # The regular component with lookahead
             reg = tfTools.tf_mat_vec_dot(
-                self.wTfNoWta, self.rho + rhoPrime * self.uDotOld) - self.u
+                self.wTfNoWta, self.rho + rhoPrime * self.uDotOld * self.tau) - self.u
 
             # Error term from the vanilla lagrange
             eVfirst = rhoPrime * c
@@ -280,22 +281,26 @@ class lagrangeTfOptimized(networkBase.networkBase):
 
         uDiff = (1. / self.tau) * (reg + eV + eWna + eNoise)
         saveOldUDot = self.uDotOld.assign(uDiff)
+        updateLowPassActivity = self.rLowPass.assign((self.rLowPass + self.timeStep / self.tauEligibility * self.rho) * tf.exp(-1. * self.timeStep / self.tauEligibility))
 
-        with tf.control_dependencies([saveOldUDot]):
-
-            self.applyMembranePot = tf.scatter_update(self.u, np.arange(
-                nInput, nFull), tf.slice(self.u, [nInput], [-1]) + self.timeStep * tf.slice(uDiff, [nInput], [-1]))
+        with tf.control_dependencies([saveOldUDot, updateLowPassActivity]):
 
             self.updateEligiblity = self.eligibility.assign(
                 (self.eligibility + self.timeStep * tfTools.tf_outer_product(
                     self.u - tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho), self.rho)) * tf.exp(-1. * self.timeStep / self.tauEligibility)
             )
+            
             self.updateRegEligibility = self.regEligibility.assign(
                 (self.regEligibility + self.timeStep * tfTools.tf_outer_product(
                     tf.nn.relu(self.uLow - self.u) -
                     tf.nn.relu(self.u - self.uHigh),
                     self.rho)) * tf.exp(-1. * self.timeStep / self.tauEligibility)
             )
+
+            #self.applyMembranePot = tf.scatter_update(self.u, np.arange(
+            #    nInput, nFull), tf.slice(self.u, [nInput], [-1]) + self.timeStep * tf.slice(uDiff, [nInput], [-1]))
+
+            self.applyMembranePot = self.u.assign(self.u + self.timeStep * uDiff)
 
         ###############################################
         ## Node to update the weights of the network ##
@@ -398,9 +403,16 @@ class lagrangeTfOptimized(networkBase.networkBase):
 
         return self.sess.run(self.u)
 
+    def getLowPassActivity(self):
+        """
+                        Run the session and return the mebrane potentials
+        """
+
+        return self.sess.run(self.rLowPass)
+
     def getActivities(self):
         """
-            Returns the rho of the outpur. Attention this is not the instantaneous spiking probability
+            Returns the rho of the output. Attention this is not the instantaneous spiking probability
         """
 
         return self.sess.run(self.rhoOutput)
@@ -410,7 +422,7 @@ class lagrangeTfOptimized(networkBase.networkBase):
             return the eligibilities as they are right now
         """
 
-        return self.sess.run(self.eligibility)
+        return self.sess.run(self.eligibility) * self.Wplastic
 
     def getTraces(self):
         """
