@@ -29,9 +29,6 @@ class networkBase(object):
         self.W = W
         self.N = len(W[:,0])
 
-        # make sure that the data below the mask is zero
-        self.maskIndex = np.where(W.mask == 1)
-        self.W[self.maskIndex] = 0
 
     def connectWeightDecay(self, decayModel):
 

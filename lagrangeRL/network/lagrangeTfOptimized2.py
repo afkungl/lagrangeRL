@@ -27,6 +27,8 @@ class lagrangeTfOptimized2(lagrangeTfOptimized):
         self.rLowPass = tf.Variable(np.zeros(self.N), dtype=self.dtype)
         uNoise = tf.Variable(np.zeros(self.N), dtype=self.dtype)
         self.uDotOld = tf.Variable(np.zeros(self.N), dtype=self.dtype)
+        self.eligNow = tf.Variable(
+            np.zeros((self.N, self.N)), dtype=self.dtype)
         self.eligibility = tf.Variable(
             np.zeros((self.N, self.N)), dtype=self.dtype)
         self.regEligibility = tf.Variable(
@@ -42,6 +44,11 @@ class lagrangeTfOptimized2(lagrangeTfOptimized):
         # set up a mask for the learned weights in self.wTfNoWta
         # note that W.mask must omit the WTA network
         self.wNoWtaMask = tf.Variable(self.Wplastic.astype(float), dtype=self.dtype)
+
+        #####################################
+        # Variables for debugging
+        self.error = tf.Variable(np.zeros(self.N), dtype=self.dtype)
+
 
         #####################################
         # Placeholders
@@ -135,14 +142,18 @@ class lagrangeTfOptimized2(lagrangeTfOptimized):
                 self.wTfOnlyWta, self.rho + self.tau * rhoPrime * self.uDotOld)
 
             # Terms from the exploration noise term
-            eNoise = self.alphaNoise * self.beta * \
-                ((uNoise) - (uOut + self.tau * uDotOut))
+            #eNoise = self.alphaNoise * self.beta * \
+            #    ((uNoise) - (uOut + self.tau * uDotOut))
+            eNoise = self.alphaNoise * self.beta * uNoise
 
         uDiff = (1. / self.tau) * (reg + eV + regWna + eNoise)
         saveOldUDot = self.uDotOld.assign(uDiff)
         updateLowPassActivity = self.rLowPass.assign((self.rLowPass + self.timeStep / self.tauEligibility * self.rho) * tf.exp(-1. * self.timeStep / self.tauEligibility))
 
-        with tf.control_dependencies([saveOldUDot, updateLowPassActivity]):
+        self.eligNowUpdate = self.eligNow.assign(tfTools.tf_outer_product(self.u - tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho), self.rho))
+        errorUpdate = self.error.assign(self.u - tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho))
+
+        with tf.control_dependencies([saveOldUDot, updateLowPassActivity, self.eligNowUpdate, errorUpdate]):
 
             self.updateEligiblity = self.eligibility.assign(
                 (self.eligibility + self.timeStep * tfTools.tf_outer_product(
@@ -167,3 +178,23 @@ class lagrangeTfOptimized2(lagrangeTfOptimized):
 
         self.updateW = self.wTfNoWta.assign(self.wTfNoWta + (self.learningRate / self.tauEligibility) * (
             self.modulator * self.eligibility + self.kappaDecay * self.regEligibility) * self.Wplastic)
+
+        ############################################
+        ## Outputs for debugging                  ##
+        ############################################
+
+        
+
+    def getPlastNow(self):
+        """
+            Get the plasticity as it is right now
+        """
+
+        return self.sess.run(self.eligNow) * self.Wplastic
+
+    def getErrorNow(self):
+        """
+            Get the plasticity as it is right now
+        """
+
+        return self.sess.run(self.error)

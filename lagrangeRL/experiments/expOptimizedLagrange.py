@@ -120,13 +120,14 @@ class expOptimizedLagrange(object):
             offset=self.initWeightMean,
             noiseMagnitude=self.initWeightWidth,
             noWtaMask=True)
+        self.logger.debug('The w matrix as it comes from the tool function: {}'.format(self.W.data))
         # Lagrange network
         self.simClass = lagrangeRL.network.lagrangeTfOptimized2()
         self.simClass.setPlasticSynapses(np.logical_not(self.W.mask))
         self.simClass.setLearningRate(self.learningRate)
         self.simClass.setTimeStep(self.timeStep)
         self.simClass.setTau(self.tau)
-        self.simClass.setNudging(self.nudging)
+        #self.simClass.setNudging(self.nudging)
         self.simClass.addMatrix(self.W)
         self.simClass.setTauEligibility(self.tauElig)
         self.simClass.saveTraces(True)
@@ -178,7 +179,7 @@ class expOptimizedLagrange(object):
             set up the activation function
         """
         # Connect to activation function
-        self.actFunc = lagrangeRL.tools.activationFunctions.sigmoidTf(
+        self.actFunc = lagrangeRL.tools.activationFunctions.hardSigmoidTf(
             self.sigmaLog)
         self.simClass.connectActivationFunction(self.actFunc)
 
@@ -228,7 +229,7 @@ class expOptimizedLagrange(object):
     def singleIteration(self, index=0):
 
         # get an example as input
-        inputExample = self.myData.getNextTestExample()[0]
+        inputExample = self.myData.getRandomTestExample()[0]
         self.Input.value[:self.layers[0]] = inputExample['data']
 
         # run the simulation before the ramp downstart
@@ -254,7 +255,7 @@ class expOptimizedLagrange(object):
         if index == 1:
             self.Wnew = self.simClass.applyWeightUpdates(Reward)
         else:
-            modulatedAvgReward = np.max([self.meanReward, -0.90])
+            modulatedAvgReward = np.max([self.meanReward, 0.0])
             self.Wnew = self.simClass.applyWeightUpdates(
                 Reward - modulatedAvgReward)
         self.meanReward = self.meanReward + \
@@ -283,13 +284,15 @@ class expOptimizedLagrange(object):
         self.logger.info("Iteration {} is done.".format(index))
         self.logger.debug("No WTA mask: {}".format(
             self.simClass.sess.run(self.simClass.wNoWtaMask)))
+        self.logger.debug("The used WTA network {}".format(self.simClass.onlyWta))
+        self.logger.debug("The used network without WTA {}".format(self.simClass.WnoWta))
 
     def plotReport(self, index, output, example):
 
         # Plot the report
         figName = 'Output/reportIteration{}.png'.format(index)
         traces = self.simClass.getTraces()
-        outputU = output
+        outputU = self.simClass.getMembPotentials()[-self.layers[-1]:]
         outputRho = self.simClass.getActivities()[self.N - self.layers[-1]:]
         target = np.argmax(example['label']) + 1
         data = example['data']
@@ -304,7 +307,9 @@ class expOptimizedLagrange(object):
         wCurrent = self.Wnew
         eligs = self.simClass.getEligibilities()
         eligs[:self.layers[0],:self.layers[0]] = 0.
-        signDeltaW = np.sign(self.deltaW.T)
+        plastNow = self.simClass.getPlastNow()
+        error = self.simClass.getErrorNow()[-self.layers[-1]:]
+        errorHidden = self.simClass.getErrorNow()[self.layers[0]:-self.layers[-1]]
         lagrangeRL.tools.visualization.plotReport(
             figName,
             self.timeStep,
@@ -316,7 +321,9 @@ class expOptimizedLagrange(object):
             self.figSize,
             wCurrent,
             eligs,
-            signDeltaW,
+            plastNow,
+            error,
+            errorHidden,
             simTime=self.simTime)
 
     def plotFinalReport(self):

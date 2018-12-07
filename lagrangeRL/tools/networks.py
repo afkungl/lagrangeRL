@@ -65,19 +65,17 @@ def feedForwardWtaReadout(layers, wtaStrength=1., offset=0.,
         inhW = inhStrength
     elif layers[-1] != 1:
         inhW = wtaStrength / (layers[-1] - 1.)
-    elif layers[-1] != 1:
-        # they are not set anyway
-        inhW = inhStrength
+    
+    WX = ma.masked_array(W, mask=WMask.astype(int))
+    index = np.where(WX.mask == 1)
+    WX.data[index] = 0
+
     Nlast = layers[-1]
     wta = -1.*np.ones((Nlast, Nlast))*inhW
     np.fill_diagonal(wta, wtaStrength)
     if not noWtaMask:
         WMask[-Nlast:,-Nlast:] = 0
     W[-Nlast:, -Nlast:] = wta
-
-    WX = ma.masked_array(W, mask=WMask.astype(int))
-    index = np.where(WX.mask == 1)
-    WX.data[index] = 0
 
     return WX
 

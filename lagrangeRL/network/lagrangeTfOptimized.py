@@ -370,6 +370,8 @@ class lagrangeTfOptimized(networkBase.networkBase):
 
     def calcOnlyWta(self, nOutputNeurons):
 
+        self.logger.debug('nOutputNeurons in the calcOnlyWta function is {}'.format(nOutputNeurons))
+        self.logger.debug('self.W.data in the calcOnlyWta function is {}'.format(self.W.data))
         self.onlyWta = np.zeros(self.W.data.shape)
         self.onlyWta[self.N - nOutputNeurons:, self.N - nOutputNeurons:] = \
             self.W.data[self.N - nOutputNeurons:, self.N - nOutputNeurons:]
