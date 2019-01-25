@@ -194,7 +194,7 @@ def makePlot():
     ax.set_ylabel('mean reward')    
     ax.set_ylim([-1.05, 1.05])
     f.savefig(os.path.join(outputDir, 'meanReward.png'))
-    f.close()
+    plt.close(f)
 
 ###########################
 # for the time being: tests
