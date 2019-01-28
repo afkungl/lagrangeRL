@@ -79,7 +79,7 @@ class mlNetwork(object):
         self.cleanActionVector = self.actionVector.assign(tf.zeros([self.layers[-1]]))
         with tf.control_dependencies(self.activities+ [self.probs,
                                                        self.getAction]):
-            self.getActionVector = tf.scatter_update(self.actionVector,
+            self.getActionVectorTf = tf.scatter_update(self.actionVector,
                                                      self.actionIndex,
                                                      1.)
 
@@ -127,5 +127,5 @@ class mlNetwork(object):
         self.sess.run(self.cleanActionVector)
 
         # run the session and respond with an action
-        return self.sess.run(self.getActionVector,
+        return self.sess.run(self.getActionVectorTf,
                              {self.inputPh: input})
