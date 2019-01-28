@@ -19,7 +19,6 @@ class testMlNetwork(unittest.TestCase):
         """
 
         self.testNetwork._createInitialWeights()
-        print(self.testNetwork.wInits)
 
     def test_setUpCompGraph(self):
         """
