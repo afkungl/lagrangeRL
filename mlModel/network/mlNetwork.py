@@ -129,3 +129,18 @@ class mlNetwork(object):
         # run the session and respond with an action
         return self.sess.run(self.getActionVectorTf,
                              {self.inputPh: input})
+
+    def updateParemeters(self,
+                         inputVector,
+                         actionVector,
+                         modulator,
+                         learningRate):
+        """
+            Update the parameters based on the formula
+        """
+
+        for upd in self.updParArray:
+            self.sess.run(upd, {self.modulatorTf: modulator,
+                                self.actionVectorPh: actionVector,
+                                self.inputPh: inputVector,
+                                self.learningRateTf: learningRate})
