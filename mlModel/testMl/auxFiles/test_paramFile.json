@@ -1,0 +1,11 @@
+{
+    "layers": [4,2],
+    "learningRate": 0.005,
+    "labels": [0,1],
+    "gammaReward": 0.3,
+    "Niter": 1000,
+    "dataSet": "dataset.txt",
+    "trueReward": 1.0,
+    "falseReward": -1.0,
+    "logLevel": "DEBUG"
+}
