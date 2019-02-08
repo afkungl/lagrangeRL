@@ -118,6 +118,14 @@ class mlNetwork(object):
     ##  experiment                   ##
     ###################################
 
+    def initialize(self):
+        """
+            Initialize the experiment or reset to an initial state
+        """
+
+        self._createInitialWeights()
+        self._createComputationalGraph()
+
     def getActionVector(self, input):
         """
             Get an action vector as a reaction to an input
@@ -130,7 +138,7 @@ class mlNetwork(object):
         return self.sess.run(self.getActionVectorTf,
                              {self.inputPh: input})
 
-    def updateParemeters(self,
+    def updateParameters(self,
                          inputVector,
                          actionVector,
                          modulator,

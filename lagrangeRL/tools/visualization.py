@@ -6,7 +6,7 @@ import numpy as np
 from scipy.special import expit
 from mpl_toolkits.axes_grid1.colorbar import colorbar
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
+plt.rcParams["font.family"] = "serif"
 
 def hide_axis(ax):
     ax.get_xaxis().set_visible(False)
@@ -514,6 +514,27 @@ def plotReportWtaTest(traces,
     # save the plot
     fig.savefig(figName, dpi=200)
     plt.close(fig)
+
+def plotMeanReward(rewardArray,
+                   fileName):
+    """
+        Plot and save the mean reward
+
+        Args:
+            rewardArray: array of the mean rewards
+            fileName: name of the file to save the plot
+    """
+
+    fonts = {'fontsize': 14,
+             'fontweight': 'bold'}
+
+    f, ax = plt.subplots(1)
+    ax.plot(rewardArray)
+    ax.set_xlabel('Iterations', **fonts)
+    ax.set_ylabel('mean reward', **fonts)
+    ax.set_ylim([-1.05, 1.05])
+    f.savefig(fileName, dpi=150)
+    plt.close(f)
 
 
 def main():

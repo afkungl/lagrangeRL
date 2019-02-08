@@ -58,7 +58,7 @@ class testMlNetwork(unittest.TestCase):
         actVec = self.testNetwork.getActionVector(inputVec)
         modulator = 0.6
         learningRate = 0.1
-        self.testNetwork.updateParemeters(inputVec,
+        self.testNetwork.updateParameters(inputVec,
                                          actVec,
                                          modulator,
                                          learningRate)

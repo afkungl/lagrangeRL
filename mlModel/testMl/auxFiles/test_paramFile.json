@@ -1,11 +1,12 @@
 {
-    "layers": [4,2],
+    "layers": [5,4,4],
     "learningRate": 0.005,
-    "labels": [0,1],
+    "labels": [0,1,2,3],
     "gammaReward": 0.3,
-    "Niter": 1000,
-    "dataSet": "dataset.txt",
+    "Niter": 10,
+    "dataSet": "testMl/auxFiles/dataset.txt",
     "trueReward": 1.0,
     "falseReward": -1.0,
-    "logLevel": "DEBUG"
+    "logLevel": "DEBUG",
+    "reportFreq": 5
 }
