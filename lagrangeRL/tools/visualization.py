@@ -516,20 +516,45 @@ def plotReportWtaTest(traces,
     plt.close(fig)
 
 def plotMeanReward(rewardArray,
-                   fileName):
+                   fileName,
+                   classRewards = {}):
     """
         Plot and save the mean reward
 
         Args:
             rewardArray: array of the mean rewards
             fileName: name of the file to save the plot
+            classRewards: rewards for the single classes
     """
 
     fonts = {'fontsize': 14,
              'fontweight': 'bold'}
 
     f, ax = plt.subplots(1)
-    ax.plot(rewardArray)
+
+    # Plot the mean reward
+    ax.plot(rewardArray, label='mean reward', color='tab:blue',
+            linewidth=1)
+
+    # Plot the class rewards
+    for index, label in enumerate(classRewards):
+        if index == 0:
+            ax.plot(classRewards[label],
+                    label='class mean reward',
+                    color='tab:orange',
+                    alpha=0.5,
+                    linewidth=0.3)
+        else:
+            ax.plot(classRewards[label],
+                    color='tab:orange',
+                    alpha=0.5,
+                    linewidth=0.3)
+
+    # add grid and legend
+    ax.grid(True, linestyle='--')
+    ax.legend()
+
+    # set the axis labels
     ax.set_xlabel('Iterations', **fonts)
     ax.set_ylabel('mean reward', **fonts)
     ax.set_ylim([-1.05, 1.05])

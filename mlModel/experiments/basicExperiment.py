@@ -60,7 +60,8 @@ class basicExperiment(object):
         if not os.path.exists('output'):
             os.makedirs('output')
         else:
-            raise RuntimeError('Idiot check! An <<output>> folder exists. Delete it to proceed!')
+            raise RuntimeError(
+                'Idiot check! An <<output>> folder exists. Delete it to proceed!')
 
     def initializeExperiment(self):
 
@@ -130,8 +131,8 @@ class basicExperiment(object):
                 # If the label is the same as we have just tested then
                 # update the array with the new reward
                 newMeanRClass = self.params['gammaReward'] * \
-                        self.meanRArrayClass[label][-1] + \
-                        (1. - self.params['gammaReward']) * currentReward
+                    self.meanRArrayClass[label][-1] + \
+                    (1. - self.params['gammaReward']) * currentReward
                 self.meanRArrayClass[label].append(newMeanRClass)
             else:
                 # For any other label the mean weight stays
@@ -145,6 +146,9 @@ class basicExperiment(object):
 
         for index in xrange(self.params['Niter']):
             self.singleIteration()
+            self.logger.info('Iteration number {} finished.'.format(index + 1))
             if index % self.params['reportFreq'] == 0:
                 visualization.plotMeanReward(self.meanRArray,
-                                             'output/meanReward.png')
+                                             'output/meanReward.png',
+                                             self.meanRArrayClass)
+                self.logger.info('Mean reward plotted.')
