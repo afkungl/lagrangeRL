@@ -144,6 +144,7 @@ class basicExperiment(object):
             Run the full experiment for the defined number of iterations
         """
 
+        # loop through the experiment
         for index in xrange(self.params['Niter']):
             self.singleIteration()
             self.logger.info('Iteration number {} finished.'.format(index + 1))
@@ -152,3 +153,8 @@ class basicExperiment(object):
                                              'output/meanReward.png',
                                              self.meanRArrayClass)
                 self.logger.info('Mean reward plotted.')
+
+        # plot the results
+        visualization.plotMeanReward(self.meanRArray,
+                                     'output/meanReward.png',
+                                     self.meanRArrayClass)
