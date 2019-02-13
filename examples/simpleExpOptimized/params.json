@@ -5,7 +5,7 @@
 	"tauElig": 10.0,
 	"timeStep": 0.1,
 	"sigmaLog": 1.0,
-	"learningRate": 0.005,
+	"learningRate": 0.1,
 	"Niter": 5000,
 	"initWeightMean": 0.005,
 	"initWeightWidth": 0.005,
@@ -25,6 +25,6 @@
 	"kappaDecay": 1.0,
 	"logLevel": "DEBUG",
 	"alphaWna": 0.1,
-	"alphaNoise": 0.2,
-	"beta": 1.0
+	"alphaNoise": 0.1,
+	"beta": 0.01
 }
