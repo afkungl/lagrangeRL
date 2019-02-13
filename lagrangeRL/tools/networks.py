@@ -32,7 +32,8 @@ def feedForward(layers):
     return WX
 
 def feedForwardWtaReadout(layers, wtaStrength=1., offset=0.,
-                          noiseMagnitude=1., inhStrength=None):
+                          noiseMagnitude=1., inhStrength=None,
+                          noWtaMask=False):
     """
         Create a the connection matrix as a masked matrix of a feedforward network with a winner-take-all network in the last layer
 
@@ -64,18 +65,17 @@ def feedForwardWtaReadout(layers, wtaStrength=1., offset=0.,
         inhW = inhStrength
     elif layers[-1] != 1:
         inhW = wtaStrength / (layers[-1] - 1.)
-    elif layers[-1] != 1:
-        # they are not set anyway
-        inhW = inhStrength
-    Nlast = layers[-1]
-    wta = -1.*np.ones((Nlast, Nlast))*inhW
-    np.fill_diagonal(wta, wtaStrength)
-    WMask[-Nlast:,-Nlast:] = 0
-    W[-Nlast:, -Nlast:] = wta
-
+    
     WX = ma.masked_array(W, mask=WMask.astype(int))
     index = np.where(WX.mask == 1)
     WX.data[index] = 0
+
+    Nlast = layers[-1]
+    wta = -1.*np.ones((Nlast, Nlast))*inhW
+    np.fill_diagonal(wta, wtaStrength)
+    if not noWtaMask:
+        WMask[-Nlast:,-Nlast:] = 0
+    W[-Nlast:, -Nlast:] = wta
 
     return WX
 

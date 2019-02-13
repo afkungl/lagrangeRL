@@ -37,6 +37,8 @@ def plotReport(figName,
                wCurrent,
                eligs,
                signDeltaW,
+               error,
+               errorHidden,
                simTime=None):
     """
         Function to plot the report of one iteration
@@ -51,7 +53,7 @@ def plotReport(figName,
                           left=0.07, right=0.93, top=.97, bottom=0.07)
     gs_upper = gs.GridSpecFromSubplotSpec(1, 2, gs_main[0, 0], wspace=0.2,
                                           width_ratios=[1, 1])
-    gs_lower = gs.GridSpecFromSubplotSpec(2, 3, gs_main[1, 0], wspace=0.2,
+    gs_lower = gs.GridSpecFromSubplotSpec(3, 3, gs_main[1, 0], wspace=0.2,
                                           hspace=.35,
                                           width_ratios=[1, 1, 1])
     axMemb = plt.Subplot(fig, gs_upper[0])
@@ -70,6 +72,10 @@ def plotReport(figName,
     fig.add_subplot(axDeltaW)
     axDeltaWSign = plt.Subplot(fig, gs_lower[1, 2])
     fig.add_subplot(axDeltaWSign)
+    axCurrentError = plt.Subplot(fig, gs_lower[2, 0])
+    fig.add_subplot(axCurrentError)
+    axCurrentErrorHidden = plt.Subplot(fig, gs_lower[2, 1])
+    fig.add_subplot(axCurrentErrorHidden)
 
     if not(simTime is None):
         lastN = int(simTime / timeStep)
@@ -170,9 +176,10 @@ def plotReport(figName,
 
     # plot the sign of the appplied weight chages
     show_axis(axDeltaWSign)
+    maxAbs = np.max(np.abs(signDeltaW))
     imAxSign = axDeltaWSign.imshow(signDeltaW, cmap='bwr',
                                    aspect=1, interpolation='nearest',
-                                   vmin=-1., vmax=1.)
+                                   vmin=-1. * maxAbs, vmax=maxAbs)
     caxSign = inset_axes(axDeltaWSign,
                          width="5%",  # width = 10% of parent_bbox width
                          height="100%",  # height : 50%
@@ -187,7 +194,29 @@ def plotReport(figName,
     axDeltaWSign.set_xlabel('neurons')
     axDeltaWSign.set_xticks(np.arange(0, nOutput))
 
-    fig.savefig(figName, dpi=200)
+    # bar plot of the current error (nudging) on the neurons
+    nOutput = len(error)
+    width = 0.7
+    xPos = np.arange(1, nOutput + 1)
+    make_spines(axCurrentError)
+    axCurrentError.bar(xPos, error, width=width)
+    axCurrentError.set_xlabel('output neurons')
+    axCurrentError.set_ylabel('error [a.u.]')
+    axCurrentError.set_xticks(np.arange(1, nOutput + 1))
+    axCurrentError.ticklabel_format(style='sci', axis='both', scilimits=(0,0))
+
+    # bar plot of the current error (nudging) on the neurons
+    nOutput = len(errorHidden)
+    width = .95
+    xPos = np.arange(1, nOutput + 1)
+    make_spines(axCurrentErrorHidden)
+    axCurrentErrorHidden.bar(xPos, errorHidden, width=width)
+    axCurrentErrorHidden.set_xlabel('hidden neurons')
+    axCurrentErrorHidden.set_ylabel('error [a.u.]')
+    axCurrentErrorHidden.set_xticks(np.arange(1, nOutput + 1))
+    axCurrentErrorHidden.ticklabel_format(style='sci', axis='both',scilimits=(0,0))
+
+    fig.savefig(figName, dpi=150)
     plt.close(fig)
 
 
