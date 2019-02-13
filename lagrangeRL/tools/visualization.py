@@ -543,12 +543,12 @@ def plotMeanReward(rewardArray,
                     label='class mean reward',
                     color='tab:orange',
                     alpha=0.5,
-                    linewidth=0.3)
+                    linewidth=0.5)
         else:
             ax.plot(classRewards[label],
                     color='tab:orange',
                     alpha=0.5,
-                    linewidth=0.3)
+                    linewidth=0.5)
 
     # add grid and legend
     ax.grid(True, linestyle='--')
