@@ -7,10 +7,10 @@ import os
 import logging
 import coloredlogs
 import json
-from .expOptimizedLagrange import expOptimizedLagrange
+from .expApproxLagrange import expApproxLagrange
 
 
-class expOptimizedLagrangeVerifyBp(expOptimizedLagrange):
+class expApproxLagrangeVerifyBp(expApproxLagrange):
     """
         Experiment class for the optimized network
     """

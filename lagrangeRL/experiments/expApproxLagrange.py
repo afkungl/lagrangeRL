@@ -9,7 +9,7 @@ import coloredlogs
 import json
 
 
-class expOptimizedLagrange(object):
+class expApproxLagrange(object):
     """
         Experiment class for the optimized network
     """
