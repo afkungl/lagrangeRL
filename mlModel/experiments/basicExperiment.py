@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from mlModel.network import mlNetwork
+import tensorflow as tf
 import json
 import logging
 import coloredlogs
@@ -67,7 +68,7 @@ class basicExperiment(object):
 
         # Set up the network
         self.networkTf = mlNetwork.mlNetwork(self.params['layers'],
-                                             tfAux.leaky_relu)
+                                             tf.nn.relu)
         self.networkTf.initialize()
 
         # Set up the data handler

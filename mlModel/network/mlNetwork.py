@@ -59,13 +59,17 @@ class mlNetwork(object):
         self.activities = []
         for index, w in enumerate(self.wArrayTf):
             if index == 0:
+                prevAct = self.inputPh
+            else:
+                prevAct = self.activities[index - 1]
+            if index == len(self.wArrayTf) - 1:
                 self.activities.append(self.actFunc(tfAux.tf_mat_vec_dot(
                                                             w,
-                                                            self.inputPh)))
+                                                            prevAct) + 5.0))
             else:
                 self.activities.append(self.actFunc(tfAux.tf_mat_vec_dot(
                                                     w,
-                                                    self.activities[index - 1])))
+                                                    prevAct)))
 
         # get probabilities and action
         self.probs = tf.nn.softmax(self.activities[-1])
