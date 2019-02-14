@@ -35,7 +35,8 @@ def feedForwardWtaReadout(layers, wtaStrength=1., offset=0.,
                           noiseMagnitude=1., inhStrength=None,
                           noWtaMask=False):
     """
-        Create a the connection matrix as a masked matrix of a feedforward network with a winner-take-all network in the last layer
+        Create a the connection matrix as a masked matrix of a feedforward network with a winner-take-all network in the last layer.
+        The network uses He initialization (He et al IEEE Comp Vision 2015).
 
         Keywords:
             --- layers: list of number of neurons in the consecutive layers
@@ -47,7 +48,7 @@ def feedForwardWtaReadout(layers, wtaStrength=1., offset=0.,
 
     # get the number of neurons
     N = np.sum(layers)
-    W = 2.*noiseMagnitude*(np.random.random((N, N)) - .5) + offset
+    W = np.zeros((N, N)) # Placeholder
     WMask = np.ones((N, N))
 
     low = 0;
@@ -55,6 +56,12 @@ def feedForwardWtaReadout(layers, wtaStrength=1., offset=0.,
     upper = mid + layers[1]
     for i in range(len(layers) - 1):
         WMask[mid:upper, low:mid] = 0
+        # Initialize the weights
+        numbBefore = mid - low
+        numbAfter = upper - mid
+        norm = np.sqrt(2./float(numbBefore))
+        W[mid:upper, low:mid] = np.random.randn(numbAfter,
+                                                numbBefore) * norm
         if not i == len(layers) - 2:
             low = mid
             mid = upper

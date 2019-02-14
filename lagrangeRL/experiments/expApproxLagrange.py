@@ -285,7 +285,6 @@ class expApproxLagrange(object):
         self.logger.debug("No WTA mask: {}".format(
             self.simClass.sess.run(self.simClass.wNoWtaMask)))
         self.logger.debug("The used WTA network {}".format(self.simClass.onlyWta))
-        self.logger.debug("The used network without WTA {}".format(self.simClass.WnoWta))
 
     def plotReport(self, index, output, example):
 
