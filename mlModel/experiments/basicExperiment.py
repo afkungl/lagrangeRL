@@ -10,6 +10,7 @@ from lagrangeRL import tools
 from lagrangeRL.tools import visualization
 import numpy as np
 import os
+from lagrangeRL.tools import activationFunctions
 
 
 class basicExperiment(object):
@@ -67,8 +68,10 @@ class basicExperiment(object):
     def initializeExperiment(self):
 
         # Set up the network
+        self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
         self.networkTf = mlNetwork.mlNetwork(self.params['layers'],
-                                             tf.nn.relu)
+                                             self.actFunc.value)
+                                             #tf.nn.relu)
         self.networkTf.initialize()
 
         # Set up the data handler

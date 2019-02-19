@@ -55,6 +55,57 @@ class sigmoidTf(object):
 
         return self.valuePrimePrime(x) * (1. - 2. * self.valuePrime(x)) - 2. * tf.pow(self.valuePrime(x), 2)
 
+class reluTf(object):
+
+    def __init__(self, slope, offset):
+        """
+            Simple relu actiovation function
+
+            Keyrwords:
+                --- slope: slope of the increasing part
+                --- offset: point of the nonlinearity
+        """
+
+        self.slope = slope
+        self.offset = offset
+
+    def value(self, x):
+        """ Calculate the value of the activation function """
+
+        return self.slope * tf.nn.relu(x - self.offset)
+
+    def valuePrime(self, x):
+
+        return tf.gradients(self.value(x), x)[0]
+
+    def valuePrimePrime(self, x):
+
+        return tf.gradients(self.valuePrime(x), x)[0]
+
+    def value3Prime(self, x):
+
+        return tf.gradients(self.valuePrimePrime(x), x)[0]
+
+class softReluTf(reluTf):
+
+    def __init__(self, slope, offset, width):
+        """
+            Simple relu actiovation function
+
+            Keyrwords:
+                --- slope: slope of the increasing part
+                --- offset: point of the nonlinearity
+                --- width: the width of the transotion between the zero and the linear regime
+        """
+
+        self.slope = slope
+        self.offset = offset
+        self.width = width
+
+    def value(self, x):
+        """ Calculate the value of the activation function """
+
+        return self.slope * self.width * tf.nn.softplus((x - self.offset)/self.width)
 
 class hardSigmoidTf(object):
 
