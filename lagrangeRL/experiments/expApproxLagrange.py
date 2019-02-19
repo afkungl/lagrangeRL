@@ -146,6 +146,11 @@ class expApproxLagrange(object):
         self.simClass.calcWnoWta(self.layers[-1])
         self.simClass.calcOnlyWta(self.layers[-1])
 
+        # set the bias
+        biasVector = np.zeros(sum(self.layers))
+        biasVector[-self.layers[-1]:] = 0.5
+        self.simClass.setBias(biasVector)
+
     def setUpInput(self):
         """
             Set up the input
@@ -179,8 +184,8 @@ class expApproxLagrange(object):
             set up the activation function
         """
         # Connect to activation function
-        self.actFunc = lagrangeRL.tools.activationFunctions.hardSigmoidTf(
-            self.sigmaLog)
+        self.actFunc = lagrangeRL.tools.activationFunctions.softReluTf(
+            1.0, 0.0, 0.3)
         self.simClass.connectActivationFunction(self.actFunc)
 
     def setUpDataHandler(self):
@@ -280,11 +285,16 @@ class expApproxLagrange(object):
         self.logger.info("The obtained reward is {}".format(Reward))
         self.logger.info(
             "The current average reward is: {}".format(self.avgRArray[-1]))
-        self.logger.debug("The current weights: {}".format(self.Wnew))
+        
         self.logger.info("Iteration {} is done.".format(index))
-        self.logger.debug("No WTA mask: {}".format(
-            self.simClass.sess.run(self.simClass.wNoWtaMask)))
-        self.logger.debug("The used WTA network {}".format(self.simClass.onlyWta))
+        
+        if self.params['logLevel'] == 'DEBUG':
+            self.logger.debug("The current weights: {}".format(self.Wnew))
+            self.logger.debug("No WTA mask: {}".format(
+                        self.simClass.sess.run(self.simClass.wNoWtaMask)))
+            self.logger.debug("The used WTA network {}".format(self.simClass.onlyWta))
+            self.logger.debug("The used bias vector is {}".format(
+                                self.simClass.getBias()))
 
     def plotReport(self, index, output, example):
 

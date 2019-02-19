@@ -11,7 +11,7 @@ import sys
 from .lagrangeTfOptimized import lagrangeTfOptimized
 
 
-class lagrangeTfOptimized2(lagrangeTfOptimized):
+class lagrangeTfDirect(lagrangeTfOptimized):
     """
         Experiment class for the optimized network
     """
@@ -73,28 +73,10 @@ class lagrangeTfOptimized2(lagrangeTfOptimized):
         #####################################################
 
         ####################################
-        # Update the values of u and uDotOld according to the input
-        applyInputU = tf.scatter_update(self.u,
-                                        np.arange(nInput),
-                                        tf.slice(self.inputTf,
-                                                 [0],
-                                                 [nInput]
-                                                 )
-                                        )
-        applyInputUDot = tf.scatter_update(self.uDotOld,
-                                           np.arange(nInput),
-                                           tf.slice(self.inputPrimeTf,
-                                                    [0],
-                                                    [nInput]
-                                                    )
-                                           )
-
-        ####################################
         # Calculate the activations functions using the updated values
-        with tf.control_dependencies([applyInputU, applyInputUDot]):
-            self.rho = self.actFunc(self.u)
-            rhoPrime = self.actFuncPrime(self.u)
-            rhoPrimePrime = self.actFuncPrimePrime(self.u)
+        self.rho = self.actFunc(self.u)
+        rhoPrime = self.actFuncPrime(self.u)
+        rhoPrimePrime = self.actFuncPrimePrime(self.u)
         self.rhoOutput = self.actFunc(self.u)
 
         ###################################
@@ -111,17 +93,38 @@ class lagrangeTfOptimized2(lagrangeTfOptimized):
         # Calculate the updates for the membrane potential and for the
         # eligibility trace
 
-        with tf.control_dependencies([updateNoise,
-                                      applyInputU,
-                                      applyInputUDot]):
+        with tf.control_dependencies([updateNoise, rhoPrime, rhoPrimePrime]):
 
             # frequently used tensors are claculated early on
             wNoWtaT = tf.transpose(self.wTfNoWta)
             wNoWtaRho = tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho)
-            c = tfTools.tf_mat_vec_dot(wNoWtaT, self.u - wNoWtaRho - self.biasTf)
-            uOut = self.u * self.outputMaskTf
-            uDotOut = self.uDotOld * self.outputMaskTf
+            c = tfTools.tf_mat_vec_dot(wNoWtaT, self.u - wNoWtaRho - self.biasTf - self.inputTf)
 
+            # get the matrix side of the equation
+            A1 = tf.matmul(self.wTfNoWta, tf.diag(rhoPrime))
+            A2 = tf.matmul(tf.diag(c), tf.diag(rhoPrimePrime))
+            A3 = tf.matmul(tf.diag(rhoPrime), wNoWtaT)
+            A4 = tf.matmul(tf.matmul(tf.diag(rhoPrime),wNoWtaT),
+                           tf.matmul(self.wTfNoWta, tf.diag(rhoPrime)))
+            A5 = self.beta * self.alphaWna * tf.matmul(self.wTfOnlyWta, tf.diag(rhoPrime))
+            A = self.tau*(tf.eye(self.N) - A1 - A2 - A3 + A4 - A5)
+
+            # get the vector side of the equation
+            y1 = wNoWtaRho + self.biasTf + self.inputTf + self.alphaNoise * self.beta * uNoise - self.u
+            y2 = self.tau * self.inputPrimeTf
+            y3 = rhoPrime * c
+            y4 = self.tau * rhoPrime * tfTools.tf_mat_vec_dot(
+                                                        wNoWtaT, 
+                                                        self.inputPrimeTf)
+            y5 = self.beta * self.alphaWna * tfTools.tf_mat_vec_dot(
+                                        self.wTfOnlyWta, self.rho)
+            y = y1 + y2 + y3 - y4 + y5
+
+            # Solve the equation for uDot
+            #self.uDiff = (1. / self.tau) * tf.linalg.solve(A, y)
+            uDiff = tf.linalg.solve(A, tf.expand_dims(y, 1))[:, 0]
+
+            """
             # The regular component with lookahead
             reg = tfTools.tf_mat_vec_dot(
                 self.wTfNoWta, self.rho + rhoPrime * self.uDotOld * self.tau) - self.u + self.biasTf
@@ -146,13 +149,14 @@ class lagrangeTfOptimized2(lagrangeTfOptimized):
             #eNoise = self.alphaNoise * self.beta * \
             #    ((uNoise) - (uOut + self.tau * uDotOut))
             eNoise = self.alphaNoise * self.beta * uNoise
+            """
 
-        uDiff = (1. / self.tau) * (reg + eV + regWna + eNoise)
+        #uDiff = (1. / self.tau) * (reg + eV + regWna + eNoise)
         saveOldUDot = self.uDotOld.assign(uDiff)
         updateLowPassActivity = self.rLowPass.assign((self.rLowPass + self.timeStep / self.tauEligibility * self.rho) * tf.exp(-1. * self.timeStep / self.tauEligibility))
 
         self.eligNowUpdate = self.eligNow.assign(tfTools.tf_outer_product(self.u - tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho) - self.biasTf, self.rho))
-        errorUpdate = self.error.assign(self.u - tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho) - self.biasTf)
+        errorUpdate = self.error.assign(self.u - tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho) - self.biasTf - self.inputTf)
 
         with tf.control_dependencies([saveOldUDot, updateLowPassActivity, self.eligNowUpdate, errorUpdate]):
 
