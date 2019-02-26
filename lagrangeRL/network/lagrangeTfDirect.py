@@ -123,6 +123,8 @@ class lagrangeTfDirect(lagrangeTfOptimized):
             # Solve the equation for uDot
             #self.uDiff = (1. / self.tau) * tf.linalg.solve(A, y)
             uDiff = tf.linalg.solve(A, tf.expand_dims(y, 1))[:, 0]
+            #chol = tf.cholesky(A)
+            #uDiff = tf.cholesky_solve(tf.cholesky(A), tf.expand_dims(y, 1))[:, 0]
 
             """
             # The regular component with lookahead
@@ -162,7 +164,7 @@ class lagrangeTfDirect(lagrangeTfOptimized):
 
             self.updateEligiblity = self.eligibility.assign(
                 (self.eligibility + self.timeStep * tfTools.tf_outer_product(
-                    self.u - tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho) - self.biasTf, self.rho)) * tf.exp(-1. * self.timeStep / self.tauEligibility)
+                    self.u - tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho) - self.biasTf - self.inputTf, self.rho)) * tf.exp(-1. * self.timeStep / self.tauEligibility)
             )
             
             self.updateRegEligibility = self.regEligibility.assign(
@@ -175,6 +177,7 @@ class lagrangeTfDirect(lagrangeTfOptimized):
             #self.applyMembranePot = tf.scatter_update(self.u, np.arange(
             #    nInput, nFull), tf.slice(self.u, [nInput], [-1]) + self.timeStep * tf.slice(uDiff, [nInput], [-1]))
 
+        with tf.control_dependencies([saveOldUDot, updateLowPassActivity, self.eligNowUpdate, errorUpdate, self.updateEligiblity, self.updateRegEligibility]):
             self.applyMembranePot = self.u.assign(self.u + self.timeStep * uDiff)
 
         ###############################################
