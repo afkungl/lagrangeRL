@@ -57,13 +57,13 @@ class basicExperiment(object):
         # Start the logger
         self.initLogging()
 
-        # Make a folder for the output file
-        # If the output file exists then stop the simulation
-        if not os.path.exists('output'):
-            os.makedirs('output')
+        # Make a folder for the Output file
+        # If the Output file exists then stop the simulation
+        if not os.path.exists('Output'):
+            os.makedirs('Output')
         else:
             raise RuntimeError(
-                'Idiot check! An <<output>> folder exists. Delete it to proceed!')
+                'Idiot check! An <<Output>> folder exists. Delete it to proceed!')
 
     def initializeExperiment(self):
 
@@ -154,11 +154,11 @@ class basicExperiment(object):
             self.logger.info('Iteration number {} finished.'.format(index + 1))
             if index % self.params['reportFreq'] == 0:
                 visualization.plotMeanReward(self.meanRArray,
-                                             'output/meanReward.png',
+                                             'Output/meanReward.png',
                                              self.meanRArrayClass)
                 self.logger.info('Mean reward plotted.')
 
         # plot the results
         visualization.plotMeanReward(self.meanRArray,
-                                     'output/meanReward.png',
+                                     'Output/meanReward.png',
                                      self.meanRArrayClass)
