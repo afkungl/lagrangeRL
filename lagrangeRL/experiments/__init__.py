@@ -1,6 +1,7 @@
 experiments = ['expApproxLagrange',
                'expApproxLagrangeDelay',
-               'expApproxLagrangeVerifyBp']
+               'expApproxLagrangeVerifyBp',
+               'expExactLagrange']
 
 for experiment in experiments:
     exec('from .{0} import {0}'.format(experiment))
