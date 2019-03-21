@@ -1,0 +1,79 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsthm}
+
+\usepackage{amsmath}
+
+\usepackage{amssymb}
+\usepackage{mathtools}
+
+\newtheorem{theorem}{Theorem}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\begin{document}
+\section*{Theorem to prove the Hill-climbing property}
+
+\textbf{Background:} The aim of the project is to approximate policy gradient in a biologically plausible setting.
+The standard policy-gradient (as known from classic reinforcement learning) realizes a gradient ascent on the expected reward.
+If our proposed network updates its parameters close to the updates in policy gradient, that is with an angle smaller than $\frac{\pi}{2}$, then we can conclude that our model does Hill-climbing (approximate gradient ascent) on the reward function.
+The following theorem abstracts away the biological details and condenses the mathematical problem.
+
+\begin{theorem}
+Let there be the real numbers $\alpha_1, \alpha_2, \dots ,\alpha_N \in \mathbb{R}$ and $\sigma \in \mathbb{R}$, $N \geq 2$.
+Consider a matrix $M \in \mathbb{R}^{N\times N}$ with $m_{ij} = - m_{ii} \frac{1}{N-1} \; \forall i \neq j; i,j \in \{1,\dots,N\}$, and with $m_{ii} = m_{jj} > 0 \quad \forall i,j \in \{1,\dots,N\}$.
+Let there be the random variables $x_1, x_2, \dots , x_N$ each independently following the normal distribution $x_k \sim \mathcal{N}(\alpha_k, \sigma^2)$.
+$x = (x_1, \dots, x_N)$ denotes the vector of these random variables.
+We define the reward function $R: \mathbb{N}^2 \to \{-1,1\}$ by:
+    \begin{equation}
+         R(i,j) = 
+          \begin{cases} 
+           1 & \text{if } i = j\\
+           -1       & \text{if } i \neq j
+          \end{cases}
+    \end{equation}
+For an arbitrary but fixed $l \in {1,\dots,N}$ we define the vectors $v,w \in \mathbb{R}^N$:
+    \begin{align}
+        v &:= R(l, \mathrm{argmax}(x)) M x\\
+        w_i &:= R(l, \mathrm{argmax}(x)) \left[\delta_{i, \mathrm{argmax}(x)} - \frac{\exp(\frac{\alpha_i}{\sigma})}{\sum_{k=1}^{N}\exp(\frac{\alpha_k}{\sigma})}\right] 
+    \end{align}
+Then
+    \begin{equation}
+        \mathrm{Exp} \left [ \frac{\langle v; w \rangle}{\sqrt{\langle v; v\rangle \langle w;w \rangle}} \right] > 0
+    \end{equation}
+with $\langle \cdot ; \cdot \rangle$ the standard Euclidean scalar product and $\mathrm{Exp}[ \cdot]$ the expected value.
+\end{theorem}
+
+\begin{proof}
+    To be shown
+\end{proof}
+
+\begin{remark}
+    \begin{itemize}
+        \item
+            The model works in software simulations, and I also have a strong gut feeling that this should work.
+        \item
+            For $N=2$ the theorem is trivial. This suggests a solution via mathematical induction.
+        \item
+            A key point in the theorem is the shape of the matrix $M$, that is:
+                \begin{equation}
+                    \sum_{i,j=1}^{N} m_{ij}= 0
+                \end{equation}
+            by definition. This forces the vector $v$ to a shape where is has to take both positive and negative values with $\sum_{i=1}^{N} v_i = 0$
+        \item
+            The random variables $x_i$ represent the activation of neurons.
+            In biology the activation of a neuron can only be non-negative.
+            This could be assumed in the theorem if this aids the proof.
+        \item
+            The term
+                \begin{equation}
+                    \frac{\exp(\frac{\alpha_i}{\sigma})}{\sum_{k=1}^{N}\exp(\frac{\alpha_k}{\sigma})}
+                \end{equation}
+            approximates the probability of the possible actions as one would implement in a classical policy gradient algorithm with softmax action-selection.
+    \end{itemize}
+\end{remark}
+
+\end{document}
+
+
