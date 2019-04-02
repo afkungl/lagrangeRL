@@ -168,3 +168,17 @@ class basicExperiment(object):
         visualization.plotMeanReward(self.meanRArray,
                                      'Output/meanReward.png',
                                      self.meanRArrayClass)
+
+        # save the results
+        self.saveResults()
+
+    def saveResults(self):
+
+        dictToSave = {'P': {'mean': self.meanRArray}}
+
+        for label in self.params['labels']:
+            dictToSave['P'][label] = self.meanRArrayClass[label]
+
+        # Save to the result to output
+        with open('Output/results.json', 'w') as outfile:
+            json.dump(dictToSave, outfile)
