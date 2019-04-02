@@ -1,5 +1,6 @@
 import lagrangeRL
 import numpy as np
+import tensorflow as tf
 import copy
 import time
 import sys
@@ -73,6 +74,10 @@ class expExactLagrange(object):
             self.reportFrequency = params['reportFrequency']
         else:
             self.reportFrequency = 1
+
+        # Set the random seed for numpy and tensorflow
+        np.random.seed(params['randomSeed'])
+        tf.random.set_random_seed(params['randomSeed'])
 
         self.params = params
 

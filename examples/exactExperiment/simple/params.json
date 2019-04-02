@@ -6,7 +6,7 @@
 	"timeStep": 0.1,
 	"sigmaLog": 2.0,
 	"learningRate": 0.1,
-	"Niter": 500000,
+	"Niter": 5000,
 	"initWeightMean": 0.0,
 	"initWeightWidth": 0.0,
 	"nudging": 0.1,
@@ -27,5 +27,6 @@
 	"alphaWna": 1.0,
 	"alphaNoise": 0.1,
 	"beta": 0.1,
-    "reportFrequency": 500
+        "reportFrequency": 500,
+	"randomSeed": 4242424242
 }

@@ -27,5 +27,6 @@
 	"alphaWna": 1.0,
 	"alphaNoise": 0.3,
 	"beta": 0.1,
-    "reportFrequency": 50
+        "reportFrequency": 50,
+	"randomSeed": 4242424242
 }
