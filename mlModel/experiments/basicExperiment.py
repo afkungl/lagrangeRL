@@ -42,7 +42,8 @@ class basicExperiment(object):
                            'trueReward',
                            'falseReward',
                            'logLevel',
-                           'reportFreq']
+                           'reportFreq',
+                           'randomSeed']
 
         # Load the parameters from the json file
         with open(jsonFile, 'r') as f:
@@ -64,6 +65,11 @@ class basicExperiment(object):
         else:
             raise RuntimeError(
                 'Idiot check! An <<Output>> folder exists. Delete it to proceed!')
+
+        # Set the random seed for numpy and tensorflow
+        # for the sake of simplicity we use the same seed
+        np.random.seed(self.params['randomSeed'])
+        tf.random.set_random_seed(self.params['randomSeed'])
 
     def initializeExperiment(self):
 
