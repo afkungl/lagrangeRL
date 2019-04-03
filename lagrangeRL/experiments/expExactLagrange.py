@@ -363,8 +363,8 @@ class expExactLagrange(object):
         if self.saveOnlyReward:
             lagrangeRL.tools.visualization.plotMeanReward(
                             self.avgRArray,
-                            self.avgRArrays,
-                            'Output/meanReward.png')
+                            'Output/meanReward.png',
+                            self.avgRArrays)
         else:
             Warray = np.array(self.Warray)
             # Plot the report
