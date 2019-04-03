@@ -75,6 +75,12 @@ class expExactLagrange(object):
         else:
             self.reportFrequency = 1
 
+        # save only reward as a default parameter
+        if 'saveOnlyReward' in params:
+            self.saveOnlyReward = params['saveOnlyReward']
+        else:
+            self.saveOnlyReward = False
+
         # Set the random seed for numpy and tensorflow
         np.random.seed(params['randomSeed'])
         tf.random.set_random_seed(params['randomSeed'])
@@ -107,7 +113,7 @@ class expExactLagrange(object):
 
         for index in range(1, self.Niter + 1):
             self.singleIteration(index)
-            if index % 10 == 0:
+            if index % self.reportFrequency == 0:
                 self.plotFinalReport()
                 self.saveResults()
 
@@ -132,10 +138,13 @@ class expExactLagrange(object):
         self.simClass.setLearningRate(self.learningRate)
         self.simClass.setTimeStep(self.timeStep)
         self.simClass.setTau(self.tau)
-        #self.simClass.setNudging(self.nudging)
         self.simClass.addMatrix(self.W)
         self.simClass.setTauEligibility(self.tauElig)
-        self.simClass.saveTraces(True)
+        if self.saveOnlyReward:
+            self.simClass.saveTraces(False)
+        else:
+            self.simClass.saveTraces(True)
+
         self.simClass.setCostWeightings(self.alphaWna,
                                         self.alphaNoise,
                                         self.beta)
@@ -266,25 +275,31 @@ class expExactLagrange(object):
             self.Wnew = self.simClass.applyWeightUpdates(Reward)
         else:
             modulatedAvgReward = np.max([self.meanReward, 0.0])
-            self.Wnew = self.simClass.applyWeightUpdates(
-                Reward - modulatedAvgReward)
+            if self.saveOnlyReward:
+                self.simClass.applyWeightUpdates(
+                    Reward - modulatedAvgReward)
+            else:
+                self.Wnew = self.simClass.applyWeightUpdates(
+                    Reward - modulatedAvgReward)
         self.meanReward = self.meanReward + \
             self.gammaReward * (Reward - self.meanReward)
 
         # save the weights in an array
-        self.Warray.append(self.Wnew[~self.simClass.W.mask])
-        self.wToOutputArray.append(
-            self.simClass.W.data[self.layers[-2]:, :self.layers[-2]].flatten())
+        if not self.saveOnlyReward:
+            self.Warray.append(self.Wnew[~self.simClass.W.mask])
+            self.wToOutputArray.append(
+                self.simClass.W.data[self.layers[-2]:, :self.layers[-2]].flatten())
 
         # Plot reports
-        if index % self.reportFrequency == 0:
+        if (index % self.reportFrequency == 0) and not self.saveOnlyReward:
             self.plotReport(index, output, inputExample)
 
         # run the simulation of the example until ramp down
         self.simClass.run(self.tRamp)
 
         # Delete the traces to avoid memory-overflow
-        self.simClass.deleteTraces()
+        if not self.saveOnlyReward:
+            self.simClass.deleteTraces()
 
         # Log intermediate results
         self.logger.info("The obtained reward is {}".format(Reward))
@@ -293,12 +308,12 @@ class expExactLagrange(object):
         
         self.logger.info("Iteration {} is done.".format(index))
         
-        if self.params['logLevel'] == 'DEBUG':
+        if not self.saveOnlyReward:
             self.logger.debug("The current weights: {}".format(self.Wnew))
-            self.logger.debug("No WTA mask: {}".format(
-                        self.simClass.sess.run(self.simClass.wNoWtaMask)))
-            self.logger.debug("The used WTA network {}".format(self.simClass.onlyWta))
-            self.logger.debug("The used bias vector is {}".format(
+        self.logger.debug("No WTA mask: {}".format(
+                    self.simClass.sess.run(self.simClass.wNoWtaMask)))
+        self.logger.debug("The used WTA network {}".format(self.simClass.onlyWta))
+        self.logger.debug("The used bias vector is {}".format(
                                 self.simClass.getBias()))
 
     def plotReport(self, index, output, example):
@@ -345,17 +360,26 @@ class expExactLagrange(object):
             Plot a final report about the results of the simulation
         """
 
-        Warray = np.array(self.Warray)
-
-        # Plot the report
-        lagrangeRL.tools.visualization.plotLearningReport(Warray,
-                                                          self.avgRArray,
-                                                          self.avgRArrays,
-                                                          'Output/learningReport.png')
+        if self.saveOnlyReward:
+            lagrangeRL.tools.visualization.plotMeanReward(
+                            self.avgRArray,
+                            self.avgRArrays,
+                            'Output/meanReward.png')
+        else:
+            Warray = np.array(self.Warray)
+            # Plot the report
+            lagrangeRL.tools.visualization.plotLearningReport(
+                                    Warray,
+                                    self.avgRArray,
+                                    self.avgRArrays,
+                                    'Output/learningReport.png')
 
     def saveResults(self):
 
-        dictToSave = {'weights': np.array(self.wToOutputArray).tolist(),
+        if self.saveOnlyReward:
+            dictToSave = {'P': {'mean': self.avgRArray}}
+        else:
+            dictToSave = {'weights': np.array(self.wToOutputArray).tolist(),
                       'P': {'mean': self.avgRArray}}
 
         for label in self.labels:
