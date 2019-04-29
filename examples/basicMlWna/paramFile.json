@@ -1,0 +1,17 @@
+{
+    "layers": [100,3],
+    "learningRate": 0.01,
+    "labels": [0,1,2],
+    "gammaReward": 0.9,
+    "Niter": 5000,
+    "dataSet": "threeDigitsMnist.txt",
+    "trueReward": 1.0,
+    "falseReward": -1.0,
+    "logLevel": "DEBUG",
+    "reportFreq": 50000,
+    "randomSeed": 17183212,
+    "noiseSigma": 0.1,
+    "learningRateH": 0.01,
+    "uLow": -1.0,
+    "uHigh": 5.0
+}
