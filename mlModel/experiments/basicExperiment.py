@@ -77,7 +77,7 @@ class basicExperiment(object):
         self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
         self.networkTf = mlNetwork.mlNetwork(self.params['layers'],
                                              self.actFunc.value)
-                                             #tf.nn.relu)
+        # tf.nn.relu)
         self.networkTf.initialize()
 
         # Set up the data handler
@@ -113,6 +113,7 @@ class basicExperiment(object):
 
         # Get a random input example
         example = self.dataHandler.getRandomTrainExample()[0]
+        currentLabel = self.params['labels'][np.argmax(example['label'])]
 
         # Take an action
         actionVector = self.networkTf.getActionVector(example['data'])
@@ -137,7 +138,7 @@ class basicExperiment(object):
         self.meanRArray.append(newMeanR)
 
         for label in self.params['labels']:
-            if actionLabel == label:
+            if currentLabel == label:
                 # If the label is the same as we have just tested then
                 # update the array with the new reward
                 newMeanRClass = self.params['gammaReward'] * \
@@ -182,3 +183,88 @@ class basicExperiment(object):
         # Save to the result to output
         with open('Output/results.json', 'w') as outfile:
             json.dump(dictToSave, outfile)
+
+
+class expMlWna(basicExperiment):
+
+    def __init__(self, jsonFile):
+        """
+            Load the jsonFile and check if it contains all the necessary parameters
+
+        """
+
+        necessaryParams = ['layers',
+                           'learningRate',
+                           'labels',
+                           'gammaReward',
+                           'Niter',
+                           'dataSet',
+                           'trueReward',
+                           'falseReward',
+                           'logLevel',
+                           'reportFreq',
+                           'randomSeed',
+                           'noiseSigma',
+                           'learningRateH',
+                           'uLow',
+                           'uHigh']
+
+        # Load the parameters from the json file
+        with open(jsonFile, 'r') as f:
+            self.params = json.load(f)
+
+        # check if all the parameters are in the dictionary
+        for parameter in necessaryParams:
+            if not parameter in self.params:
+                raise RuntimeError(
+                    'The parameter {} is missing from the parameter file!'.format(parameter))
+
+        # Start the logger
+        self.initLogging()
+
+        # Make a folder for the Output file
+        # If the Output file exists then stop the simulation
+        if not os.path.exists('Output'):
+            os.makedirs('Output')
+        else:
+            raise RuntimeError(
+                'Idiot check! An <<Output>> folder exists. Delete it to proceed!')
+
+        # Set the random seed for numpy and tensorflow
+        # for the sake of simplicity we use the same seed
+        np.random.seed(self.params['randomSeed'])
+        tf.random.set_random_seed(self.params['randomSeed'])
+
+    def initializeExperiment(self):
+
+        # Set up the network
+        self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
+        self.networkTf = mlNetwork.mlNetworkWta(self.params['layers'],
+                                                self.actFunc.value)
+        # tf.nn.relu)
+        self.networkTf.setNoiseSigma(self.params['noiseSigma'])
+        self.networkTf.setHomeostaticParams(self.params['learningRateH'],
+                                            self.params['uLow'],
+                                            self.params['uHigh'])
+        self.networkTf.initialize()
+
+        # Set up the data handler
+        self.dataHandler = tools.dataHandler.dataHandlerMnist(
+            self.params['labels'],
+            self.params['dataSet'],
+            self.params['dataSet'])
+
+        self.dataHandler.loadTrainSet()
+
+        # Set up the reward scheme
+        self.rewardScheme = tools.rewardSchemes.maxClassification(
+            self.params['trueReward'],
+            self.params['falseReward'])
+
+        # Set up arrays and parameters to save the progress
+        self.meanR = 0
+        self.meanRArray = [0]
+        self.meanRArrayClass = {}
+        for label in self.params['labels']:
+            self.meanRArrayClass[label] = [0]
+        self.currentRArray = []

@@ -26,6 +26,7 @@ class lagrangeTfDirect(lagrangeTfOptimized):
         self.u = tf.Variable(np.zeros(self.N), dtype=self.dtype)
         self.rLowPass = tf.Variable(np.zeros(self.N), dtype=self.dtype)
         uNoise = tf.Variable(np.zeros(self.N), dtype=self.dtype)
+        self.uNoiseLowPass = tf.Variable(np.zeros(self.N), dtype=self.dtype)
         self.uDotOld = tf.Variable(np.zeros(self.N), dtype=self.dtype)
         self.eligNow = tf.Variable(
             np.zeros((self.N, self.N)), dtype=self.dtype)
@@ -88,17 +89,20 @@ class lagrangeTfDirect(lagrangeTfOptimized):
         updateNoise = tf.scatter_update(uNoise,
                                         np.arange(nFull - nOutput, nFull),
                                         uNoiseOut + duOutNoise)
+        # Update the low-pass noise
+        with tf.control_dependencies([updateNoise]):
+            self.uNoiseLowPass = self.uNoiseLowPass + (self.timeStep/self.tau) * (uNoise - self.uNoiseLowPass)
 
         ####################################
         # Calculate the updates for the membrane potential and for the
         # eligibility trace
 
-        with tf.control_dependencies([updateNoise, rhoPrime, rhoPrimePrime]):
+        with tf.control_dependencies([self.uNoiseLowPass, updateNoise, rhoPrime, rhoPrimePrime]):
 
             # frequently used tensors are claculated early on
             wNoWtaT = tf.transpose(self.wTfNoWta)
             wNoWtaRho = tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho)
-            c = tfTools.tf_mat_vec_dot(wNoWtaT, self.u - wNoWtaRho - self.biasTf - self.inputTf)
+            c = tfTools.tf_mat_vec_dot(wNoWtaT, self.u - wNoWtaRho - self.biasTf - self.inputTf - self.uNoiseLowPass)
 
             # get the matrix side of the equation
             A1 = tf.matmul(self.wTfNoWta, tf.diag(rhoPrime))
@@ -118,7 +122,8 @@ class lagrangeTfDirect(lagrangeTfOptimized):
                                                         self.inputPrimeTf)
             y5 = self.beta * self.alphaWna * tfTools.tf_mat_vec_dot(
                                         self.wTfOnlyWta, self.rho)
-            y = y1 + y2 + y3 - y4 + y5
+            y6 = rhoPrime * tfTools.tf_mat_vec_dot(wNoWtaT, uNoise - self.uNoiseLowPass)
+            y = y1 + y2 + y3 - y4 + y5 - y6
 
             # Solve the equation for uDot
             #self.uDiff = (1. / self.tau) * tf.linalg.solve(A, y)
@@ -164,7 +169,7 @@ class lagrangeTfDirect(lagrangeTfOptimized):
 
             self.updateEligiblity = self.eligibility.assign(
                 (self.eligibility + self.timeStep * tfTools.tf_outer_product(
-                    self.u - tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho) - self.biasTf - self.inputTf, self.rho)) * tf.exp(-1. * self.timeStep / self.tauEligibility)
+                    self.u - tfTools.tf_mat_vec_dot(self.wTfNoWta, self.rho) - self.biasTf - self.inputTf - self.uNoiseLowPass, self.rho)) * tf.exp(-1. * self.timeStep / self.tauEligibility)
             )
             
             self.updateRegEligibility = self.regEligibility.assign(

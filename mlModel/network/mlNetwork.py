@@ -3,6 +3,7 @@ import numpy as np
 import logging
 import coloredlogs
 from mlModel.aux import tfAux
+from lagrangeRL.tools import tfTools
 
 
 class mlNetwork(object):
@@ -105,16 +106,22 @@ class mlNetwork(object):
         # tensors to update the parameters
         self.updParArray = []
         for index, wTf in enumerate(self.wArrayTf):
-            self.updParArray.append(tf.assign(wTf,
-                                         wTf + self.learningRateTf * self.modulatorTf * tf.einsum('kij,k->ij',
-                                                     self.wgradArr[index],
-                                                     self.actionVectorPh - self.probs)
-                                         )
-                               )
+            self.updParArray.append(self.getUpdateParameters(index, wTf))
 
         # start the session
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
+
+    def getUpdateParameters(self, index, wTf):
+        '''
+            Create a tensor to update the parameters in the connection matrices
+        '''
+
+        return tf.assign(wTf,
+                         wTf + self.learningRateTf * self.modulatorTf * tf.einsum('kij,k->ij',
+                                    self.wgradArr[index],
+                                    self.actionVectorPh - self.probs)
+                        )
 
 
     ###################################
@@ -153,6 +160,155 @@ class mlNetwork(object):
 
         for upd in self.updParArray:
             self.sess.run(upd, {self.modulatorTf: modulator,
+                                self.actionVectorPh: actionVector,
+                                self.inputPh: inputVector,
+                                self.learningRateTf: learningRate})
+
+
+class mlNetworkWta(mlNetwork):
+    """
+    
+        This network implementation inherits everything from the machine learning model except for the calcualtion of the gradient. This one approximates the gradient via the winner-nudges-all approximation
+
+    """
+
+    def _createComputationalGraph(self):
+        """
+            Create the computational graph ready to start
+        """
+
+        # Check if the weights are initialized
+        if not 'wInits' in dir(self):
+            raise RuntimeError("The weights have to be inititalized before creating the computational graph!")
+
+        # Input
+        self.inputPh = tf.placeholder(dtype=self.dtype, shape=(self.layers[0]))
+
+        # winner nudges all circuit
+        nNeurons = self.layers[-1]
+        wnaW = np.ones((nNeurons, nNeurons)) * (-1.)/(nNeurons - 1.)
+        np.fill_diagonal(wnaW, 1.) 
+        self.wnaTf = tf.Variable(wnaW, dtype=self.dtype)
+
+        # network array
+        self.wArrayTf = []
+        for w in self.wInits:
+            self.wArrayTf.append(tf.Variable(w, dtype=self.dtype))
+
+        # forward pass of action selection
+        self.activities = []
+        for index, w in enumerate(self.wArrayTf):
+            if index == 0:
+                prevAct = self.inputPh
+            else:
+                prevAct = self.activities[index - 1]
+            if index == len(self.wArrayTf) - 1:
+                #randomCont = tf.random.normal([self.layers[-1]],
+                #                              0.,
+                #                              self.noiseSigma)
+                self.lastLayerU = tfAux.tf_mat_vec_dot(
+                                w,
+                                prevAct) + 5.0 + tf.random.normal(
+                                                    [self.layers[-1]],
+                                                    0.,
+                                                    self.noiseSigma)
+                self.activities.append(
+                        self.actFunc(self.lastLayerU))
+            else:
+                self.activities.append(self.actFunc(tfAux.tf_mat_vec_dot(
+                                                    w,
+                                                    prevAct)))
+
+        # get probabilities and action
+        self.actionVector = tf.Variable(np.zeros(self.layers[-1]),
+                                                 dtype=self.dtype)
+        self.actionIndex = tf.Variable(0,
+                          dtype=tf.int64)
+        with tf.control_dependencies(self.activities):
+            #self.getAction = self.actionIndex.assign(tf.multinomial(
+            #                            tf.log([self.probs]), 1)[0][0])
+            self.getAction = self.actionIndex.assign(
+                                tf.math.argmax(self.activities[-1]))
+        self.cleanActionVector = self.actionVector.assign(tf.zeros([self.layers[-1]]))
+        with tf.control_dependencies(self.activities+ [self.getAction]):
+            self.getActionVectorTf = tf.scatter_update(self.actionVector,
+                                                     self.actionIndex,
+                                                     1.)
+
+
+        # Set up the parameter updates
+        # Modulator
+        self.modulatorTf = tf.placeholder(dtype=self.dtype,
+                                     shape=())
+        self.actionVectorPh = tf.placeholder(dtype=self.dtype,
+                                             shape=(self.layers[-1]))
+        self.learningRateTf = tf.placeholder(dtype=self.dtype,
+                                     shape=())
+
+        # get the gradients
+        self.wgradArr = []
+        for wTf in self.wArrayTf:
+            self.wgradArr.append(tf.stack(tfAux.jacobian(self.activities[-1], wTf)))
+
+        # do the homoestatic update
+        self.homUpdate = (tf.nn.relu(self.uLow - self.lastLayerU) - tf.nn.relu(self.lastLayerU - self.uHigh))
+        if len(self.layers) == 2:
+            prevAct = self.inputPh
+        else:
+            prevAct = self.activities[-2]
+        self.updateH = self.wArrayTf[-1].assign(self.wArrayTf[-1] + 
+                            self.learningRateH * tfTools.tf_outer_product(
+                                                    self.homUpdate,
+                                                    prevAct))
+
+        # tensors to update the parameters
+        self.updParArray = []
+        for index, wTf in enumerate(self.wArrayTf):
+            self.updParArray.append(self.getUpdateParameters(index, wTf))
+
+
+
+        # start the session
+        self.sess = tf.Session()
+        self.sess.run(tf.global_variables_initializer())
+
+    def getUpdateParameters(self, index, wTf):
+        '''
+            Create a tensor to update the parameters in the connection matrices
+        '''
+
+        return tf.assign(wTf,
+                         wTf + self.learningRateTf * self.modulatorTf * tf.einsum('kij,k->ij',
+                                    self.wgradArr[index],
+                                    tfAux.tf_mat_vec_dot(self.wnaTf, self.activities[-1]))
+                        )
+
+    def setNoiseSigma(self, noiseSigma):
+
+        self.noiseSigma = noiseSigma
+
+    def setHomeostaticParams(self, learningRateH, uLow, uHigh):
+
+        self.learningRateH = learningRateH
+        self.uLow = uLow
+        self.uHigh = uHigh
+
+    def updateParameters(self,
+                         inputVector,
+                         actionVector,
+                         modulator,
+                         learningRate):
+        """
+            Update the parameters based on the formula
+        """
+
+        for upd in self.updParArray:
+            self.sess.run(upd, {self.modulatorTf: modulator,
+                                self.actionVectorPh: actionVector,
+                                self.inputPh: inputVector,
+                                self.learningRateTf: learningRate})
+
+        self.sess.run(self.updateH, {self.modulatorTf: modulator,
                                 self.actionVectorPh: actionVector,
                                 self.inputPh: inputVector,
                                 self.learningRateTf: learningRate})
