@@ -164,6 +164,15 @@ class mlNetwork(object):
                                 self.inputPh: inputVector,
                                 self.learningRateTf: learningRate})
 
+    def _getLastLayerWeights(self):
+        """
+            Return the weights between the last hidden layer and the output layer.
+
+            For debugging
+        """
+
+        return self.sess.run(self.wArrayTf[-1])
+
 
 class mlNetworkWta(mlNetwork):
     """
@@ -309,6 +318,34 @@ class mlNetworkWta(mlNetwork):
                                 self.learningRateTf: learningRate})
 
         self.sess.run(self.updateH, {self.modulatorTf: modulator,
+                                self.actionVectorPh: actionVector,
+                                self.inputPh: inputVector,
+                                self.learningRateTf: learningRate})
+
+
+
+
+class mlNetworkVerifyBp(mlNetwork):
+    """
+
+        This network implementation inherits everything from the machine learning model, but the weights from the last hidden layer to the output layer are not updated.
+
+    """
+
+    def updateParameters(self,
+                         inputVector,
+                         actionVector,
+                         modulator,
+                         learningRate):
+        """
+            Update the parameters based on the formula
+        """
+
+        for counter, upd in enumerate(self.updParArray):
+            if counter == len(self.updParArray) - 1:
+                # break before updating the last layer
+                break
+            self.sess.run(upd, {self.modulatorTf: modulator,
                                 self.actionVectorPh: actionVector,
                                 self.inputPh: inputVector,
                                 self.learningRateTf: learningRate})

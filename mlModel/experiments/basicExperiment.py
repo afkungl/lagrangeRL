@@ -159,6 +159,10 @@ class basicExperiment(object):
         for index in xrange(self.params['Niter']):
             self.singleIteration()
             self.logger.info('Iteration number {} finished.'.format(index + 1))
+            # Report the weights in the last layer for debugging
+            self.logger.debug('Weights in last layer {}'.format(
+                    self.networkTf._getLastLayerWeights()))
+
             if index % self.params['reportFreq'] == 0:
                 visualization.plotMeanReward(self.meanRArray,
                                              'Output/meanReward.png',
@@ -268,3 +272,44 @@ class expMlWna(basicExperiment):
         for label in self.params['labels']:
             self.meanRArrayClass[label] = [0]
         self.currentRArray = []
+
+
+class expMlVarifyBp(basicExperiment):
+    """
+
+        Experiment identical to the basic Experiment but the last layer of weights is not updated
+
+    """
+
+
+    def initializeExperiment(self):
+
+        # Set up the network
+        self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
+        self.networkTf = mlNetwork.mlNetworkVerifyBp(
+                                        self.params['layers'],
+                                        self.actFunc.value)
+        # tf.nn.relu)
+        self.networkTf.initialize()
+
+        # Set up the data handler
+        self.dataHandler = tools.dataHandler.dataHandlerMnist(
+            self.params['labels'],
+            self.params['dataSet'],
+            self.params['dataSet'])
+
+        self.dataHandler.loadTrainSet()
+
+        # Set up the reward scheme
+        self.rewardScheme = tools.rewardSchemes.maxClassification(
+            self.params['trueReward'],
+            self.params['falseReward'])
+
+        # Set up arrays and parameters to save the progress
+        self.meanR = 0
+        self.meanRArray = [0]
+        self.meanRArrayClass = {}
+        for label in self.params['labels']:
+            self.meanRArrayClass[label] = [0]
+        self.currentRArray = []
+
