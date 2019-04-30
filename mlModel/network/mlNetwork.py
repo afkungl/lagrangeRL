@@ -190,8 +190,15 @@ class mlNetworkWta(mlNetwork):
         if not 'wInits' in dir(self):
             raise RuntimeError("The weights have to be inititalized before creating the computational graph!")
 
-        # Input
-        self.inputPh = tf.placeholder(dtype=self.dtype, shape=(self.layers[0]))
+        # Input placeholders
+        self.inputPh = tf.placeholder(dtype=self.dtype,
+                                      shape=(self.layers[0]))
+        self.trueLabel = tf.placeholder(dtype=self.dtype,
+                                        shape=(self.layers[-1]))
+        self.meanReward = tf.placeholder(dtype=self.dtype,
+                                         shape=())
+        self.learningRateTf = tf.placeholder(dtype=self.dtype,
+                                             shape=())
 
         # winner nudges all circuit
         nNeurons = self.layers[-1]
@@ -228,58 +235,71 @@ class mlNetworkWta(mlNetwork):
                                                     w,
                                                     prevAct)))
 
-        # get probabilities and action
+        # get action vector
         self.actionVector = tf.Variable(np.zeros(self.layers[-1]),
-                                                 dtype=self.dtype)
+                                        dtype=self.dtype)
         self.actionIndex = tf.Variable(0,
-                          dtype=tf.int64)
-        with tf.control_dependencies(self.activities):
-            #self.getAction = self.actionIndex.assign(tf.multinomial(
-            #                            tf.log([self.probs]), 1)[0][0])
+                                       dtype=tf.int64)
+        self.cleanActionVector = self.actionVector.assign(
+                                        tf.zeros([self.layers[-1]]))
+        with tf.control_dependencies(self.activities + [self.cleanActionVector]):
             self.getAction = self.actionIndex.assign(
                                 tf.math.argmax(self.activities[-1]))
-        self.cleanActionVector = self.actionVector.assign(tf.zeros([self.layers[-1]]))
+
         with tf.control_dependencies(self.activities+ [self.getAction]):
             self.getActionVectorTf = tf.scatter_update(self.actionVector,
                                                      self.actionIndex,
                                                      1.)
 
+        # obtain reward
+        with tf.control_dependencies([self.getActionVectorTf]):
+            self.R = tf.cond(tf.reduce_all(tf.equal(self.actionVector,
+                                                    self.trueLabel)),
+                             lambda: 1.0,
+                             lambda: -1.0)
 
         # Set up the parameter updates
         # Modulator
-        self.modulatorTf = tf.placeholder(dtype=self.dtype,
-                                     shape=())
-        self.actionVectorPh = tf.placeholder(dtype=self.dtype,
-                                             shape=(self.layers[-1]))
-        self.learningRateTf = tf.placeholder(dtype=self.dtype,
-                                     shape=())
+        self.modulatorTf = self.R - tf.math.maximum(0., self.meanReward)
 
         # get the gradients
-        self.wgradArr = []
-        for wTf in self.wArrayTf:
-            self.wgradArr.append(tf.stack(tfAux.jacobian(self.activities[-1], wTf)))
+        with tf.control_dependencies([self.getActionVectorTf, self.R, self.modulatorTf]):
+            self.wgradArr = []
+            for wTf in self.wArrayTf:
+                self.wgradArr.append(tf.stack(tfAux.jacobian(self.activities[-1],
+                                                         wTf)))
 
-        # do the homoestatic update
-        self.homUpdate = (tf.nn.relu(self.uLow - self.lastLayerU) - tf.nn.relu(self.lastLayerU - self.uHigh))
-        if len(self.layers) == 2:
-            prevAct = self.inputPh
-        else:
-            prevAct = self.activities[-2]
-        self.updateH = self.wArrayTf[-1].assign(self.wArrayTf[-1] + 
+            # do the homoestatic update
+            self.homUpdate = (tf.nn.relu(self.uLow - self.lastLayerU) - tf.nn.relu(self.lastLayerU - self.uHigh))
+            if len(self.layers) == 2:
+                prevAct = self.inputPh
+            else:
+                prevAct = self.activities[-2]
+            self.updateH = self.wArrayTf[-1].assign(self.wArrayTf[-1] + 
                             self.learningRateH * tfTools.tf_outer_product(
                                                     self.homUpdate,
                                                     prevAct))
 
-        # tensors to update the parameters
-        self.updParArray = []
-        for index, wTf in enumerate(self.wArrayTf):
-            self.updParArray.append(self.getUpdateParameters(index, wTf))
-
-
+            # tensors to update the parameters
+            self.updParArray = []
+            for index, wTf in enumerate(self.wArrayTf):
+                self.updParArray.append(self.getUpdateParameters(index, wTf))
 
         # start the session
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
+
+    def doOneIteration(self, inputData, trueLabel, learningRate, meanR):
+
+        tensors = [self.R, self.getActionVectorTf, self.updateH] + self.updParArray + self.activities
+        inputDict = {self.inputPh: inputData,
+                     self.trueLabel: trueLabel,
+                     self.meanReward: meanR,
+                     self.learningRateTf: learningRate}
+
+        res = self.sess.run(tensors, inputDict)
+
+        return res[0]
 
     def getUpdateParameters(self, index, wTf):
         '''
@@ -346,6 +366,37 @@ class mlNetworkVerifyBp(mlNetwork):
                 # break before updating the last layer
                 break
             self.sess.run(upd, {self.modulatorTf: modulator,
+                                self.actionVectorPh: actionVector,
+                                self.inputPh: inputVector,
+                                self.learningRateTf: learningRate})
+
+
+class mlNetworkWtaVerifyBp(mlNetworkWta):
+    """
+
+        This network implementation inherits everything from the wna machine learning model, but the weights from the last hidden layer to the output layer are not updated.
+
+    """
+
+    def updateParameters(self,
+                         inputVector,
+                         actionVector,
+                         modulator,
+                         learningRate):
+        """
+            Update the parameters based on the formula
+        """
+
+        for counter, upd in enumerate(self.updParArray):
+            if counter == len(self.updParArray) - 1:
+                # break before updating the last layer
+                break
+            self.sess.run(upd, {self.modulatorTf: modulator,
+                                self.actionVectorPh: actionVector,
+                                self.inputPh: inputVector,
+                                self.learningRateTf: learningRate})
+
+        self.sess.run(self.updateH, {self.modulatorTf: modulator,
                                 self.actionVectorPh: actionVector,
                                 self.inputPh: inputVector,
                                 self.learningRateTf: learningRate})

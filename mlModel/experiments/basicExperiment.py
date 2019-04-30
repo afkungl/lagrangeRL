@@ -258,6 +258,7 @@ class expMlWna(basicExperiment):
             self.params['dataSet'],
             self.params['dataSet'])
 
+
         self.dataHandler.loadTrainSet()
 
         # Set up the reward scheme
@@ -272,6 +273,47 @@ class expMlWna(basicExperiment):
         for label in self.params['labels']:
             self.meanRArrayClass[label] = [0]
         self.currentRArray = []
+
+    def singleIteration(self):
+        """
+            Perform the single iteration:
+                --- take an action
+                --- obtain a reward
+                --- save the reward into the mean reward and the rewards
+                    by class
+                --- update the parameters
+        """
+
+        # Get a random input example
+        example = self.dataHandler.getRandomTrainExample()[0]
+        currentLabel = self.params['labels'][np.argmax(example['label'])]
+
+        # Make an iteration
+        currentReward = self.networkTf.doOneIteration(
+                                    example['data'],
+                                    example['label'],
+                                    self.params['learningRate'],
+                                    self.meanRArray[-1])
+        self.logger.info('The true label is {}'.format(example['label']))
+
+        # Save the observed rewards into the respective arrays
+        self.currentRArray.append(currentReward)
+        newMeanR = self.params['gammaReward'] * self.meanRArray[-1] + \
+            (1. - self.params['gammaReward']) * currentReward
+        self.meanRArray.append(newMeanR)
+
+        for label in self.params['labels']:
+            if currentLabel == label:
+                # If the label is the same as we have just tested then
+                # update the array with the new reward
+                newMeanRClass = self.params['gammaReward'] * \
+                    self.meanRArrayClass[label][-1] + \
+                    (1. - self.params['gammaReward']) * currentReward
+                self.meanRArrayClass[label].append(newMeanRClass)
+            else:
+                # For any other label the mean weight stays
+                self.meanRArrayClass[label].append(
+                    self.meanRArrayClass[label][-1])
 
 
 class expMlVarifyBp(basicExperiment):
@@ -313,3 +355,43 @@ class expMlVarifyBp(basicExperiment):
             self.meanRArrayClass[label] = [0]
         self.currentRArray = []
 
+
+class expMlWnaVerifyBp(expMlWna):
+    """
+        This experiment inherits everything from the one before but it does not update the weight to the output neurons
+    """
+
+    def initializeExperiment(self):
+
+        # Set up the network
+        self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
+        self.networkTf = mlNetwork.mlNetworkWtaVerifyBp(
+                                        self.params['layers'],
+                                        self.actFunc.value)
+        # tf.nn.relu)
+        self.networkTf.setNoiseSigma(self.params['noiseSigma'])
+        self.networkTf.setHomeostaticParams(self.params['learningRateH'],
+                                            self.params['uLow'],
+                                            self.params['uHigh'])
+        self.networkTf.initialize()
+
+        # Set up the data handler
+        self.dataHandler = tools.dataHandler.dataHandlerMnist(
+            self.params['labels'],
+            self.params['dataSet'],
+            self.params['dataSet'])
+
+        self.dataHandler.loadTrainSet()
+
+        # Set up the reward scheme
+        self.rewardScheme = tools.rewardSchemes.maxClassification(
+            self.params['trueReward'],
+            self.params['falseReward'])
+
+        # Set up arrays and parameters to save the progress
+        self.meanR = 0
+        self.meanRArray = [0]
+        self.meanRArrayClass = {}
+        for label in self.params['labels']:
+            self.meanRArrayClass[label] = [0]
+        self.currentRArray = []
