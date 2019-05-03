@@ -312,6 +312,8 @@ class expExactLagrange(object):
             self.logger.debug("The current weights: {}".format(self.Wnew))
         self.logger.debug("No WTA mask: {}".format(
                     self.simClass.sess.run(self.simClass.wNoWtaMask)))
+        self.logger.debug("Plastic synapses: {}".format(
+                    self.simClass.Wplastic))
         self.logger.debug("The used WTA network {}".format(self.simClass.onlyWta))
         self.logger.debug("The used bias vector is {}".format(
                                 self.simClass.getBias()))

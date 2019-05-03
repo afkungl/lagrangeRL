@@ -28,6 +28,8 @@ class networkBase(object):
 
         self.W = W
         self.N = len(W[:,0])
+        # no winner-nudges-all array
+        self.noWnaMask = np.logical_not(self.W.mask)
 
 
     def connectWeightDecay(self, decayModel):
