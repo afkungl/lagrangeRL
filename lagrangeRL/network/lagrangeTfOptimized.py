@@ -384,7 +384,8 @@ class lagrangeTfOptimized(networkBase.networkBase):
         self.logger.debug(
             'The global time before the run command is: {}'.format(self.T))
 
-        simSteps = int(timeDifference / self.timeStep)
+        simSteps = timeDifference / self.timeStep
+        simSteps = int(np.around(simSteps, decimals=0))
         if abs(simSteps * self.timeStep - timeDifference) > 1e-4:
             self.logger.warning(
                 "The simulated time is not an integer multiple of the timestep. This can lead to timing offsets!")

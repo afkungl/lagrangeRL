@@ -1,5 +1,6 @@
 experiments = ['expExactLagrange',
                'expExactLagrangeDelay',
+               'expExactLagrangeScrambled',
                'expExactLagrangeVBackprop']
 
 for experiment in experiments:
