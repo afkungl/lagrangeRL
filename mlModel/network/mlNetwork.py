@@ -39,6 +39,10 @@ class mlNetwork(object):
                                 self.layers[index]) * norm
             self.wInits.append(W)
 
+    def getInitialWeights(self, wInits):
+
+        self.wInits = wInits
+
     def _createComputationalGraph(self):
         """
             Create the computational graph ready to start
@@ -172,6 +176,14 @@ class mlNetwork(object):
         """
 
         return self.sess.run(self.wArrayTf[-1])
+
+    def getWeights(self):
+
+        weights = []
+        for w in self.wArrayTf:
+            weights.append(self.sess.run(w))
+
+        return weights
 
 
 class mlNetworkWta(mlNetwork):

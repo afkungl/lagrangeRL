@@ -27,7 +27,7 @@ class basicExperiment(object):
         if 'logLevel' in self.params:
             coloredlogs.install(level=self.params['logLevel'])
 
-    def __init__(self, jsonFile):
+    def __init__(self, jsonFile, overwriteOutput=False):
         """
             Load the jsonFile and check if it contains all the necessary parameters
 
@@ -62,9 +62,12 @@ class basicExperiment(object):
         # If the Output file exists then stop the simulation
         if not os.path.exists('Output'):
             os.makedirs('Output')
-        else:
+        elif not overwriteOutput:
             raise RuntimeError(
                 'Idiot check! An <<Output>> folder exists. Delete it to proceed!')
+
+        # checkpointing is turned off by default
+        self.checkpointing = False
 
         # Set the random seed for numpy and tensorflow
         # for the sake of simplicity we use the same seed
@@ -77,7 +80,6 @@ class basicExperiment(object):
         self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
         self.networkTf = mlNetwork.mlNetwork(self.params['layers'],
                                              self.actFunc.value)
-        # tf.nn.relu)
         self.networkTf.initialize()
 
         # Set up the data handler
@@ -150,13 +152,13 @@ class basicExperiment(object):
                 self.meanRArrayClass[label].append(
                     self.meanRArrayClass[label][-1])
 
-    def runFullExperiment(self):
+    def runFullExperiment(self, startFrom=0):
         """
             Run the full experiment for the defined number of iterations
         """
 
         # loop through the experiment
-        for index in xrange(self.params['Niter']):
+        for index in xrange(startFrom, self.params['Niter']):
             self.singleIteration()
             self.logger.info('Iteration number {} finished.'.format(index + 1))
             # Report the weights in the last layer for debugging
@@ -168,6 +170,9 @@ class basicExperiment(object):
                                              'Output/meanReward.png',
                                              self.meanRArrayClass)
                 self.logger.info('Mean reward plotted.')
+
+            if self.checkpointing and (index % self.checkPerIter == 0):
+                self.saveCheckpoint(index)
 
         # plot the results
         visualization.plotMeanReward(self.meanRArray,
@@ -188,10 +193,90 @@ class basicExperiment(object):
         with open('Output/results.json', 'w') as outfile:
             json.dump(dictToSave, outfile)
 
+    def enableCheckpointing(self, perIter):
+        """
+            Turn on the checkpointing
+
+            Args:
+                -- perIter: checkpointing every perIter iteration
+        """
+
+        self.checkpointing = True
+        self.checkPerIter = perIter
+
+    def saveCheckpoint(self, currentIter):
+
+        # create a checkpoint folder if necessary
+        if not os.path.exists('Checkpoint'):
+            os.makedirs('Checkpoint')
+
+        dictToSave = {'P': {'mean': self.meanRArray}}
+        for label in self.params['labels']:
+            dictToSave['P'][label] = self.meanRArrayClass[label]
+        wLists = []
+        for w in self.networkTf.getWeights():
+            wLists.append(w.tolist())
+        dictToSave['weights'] = wLists
+        dictToSave['currentIter'] = currentIter 
+
+        # Save to the result to output
+        fileName = 'Checkpoint/checkpoint_iter{}.json'.format(currentIter)
+        with open(fileName, 'w') as outfile:
+            json.dump(dictToSave, outfile)
+
+    def loadCheckpoint(self, fileName):
+
+        # Save the specified file
+        with open(fileName, 'r') as infile:
+            loadDict = json.load(infile)
+
+        # load the arrays
+        self.meanRArray = loadDict['P']['mean']
+        self.meanRArrayClass = {}
+        for label in self.params['labels']:
+            self.meanRArrayClass[label] = loadDict['P'][str(label)]
+
+        # load the current weights
+        self.currentWs = []
+        for w in loadDict['weights']:
+            self.currentWs.append(np.array(w))
+
+        # Load current iteration
+        self.currIter = loadDict['currentIter']
+        self.currentRArray = []
+
+    def continueFromCheckpoint(self):
+
+        # Set up the experiment again
+        # Set up the network
+        self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
+        self.networkTf = mlNetwork.mlNetwork(self.params['layers'],
+                                             self.actFunc.value)
+        self.networkTf.getInitialWeights(self.currentWs)
+        self.networkTf._createComputationalGraph()
+
+        # Set up the data handler
+        self.dataHandler = tools.dataHandler.dataHandlerMnist(
+            self.params['labels'],
+            self.params['dataSet'],
+            self.params['dataSet'])
+
+        self.dataHandler.loadTrainSet()
+
+        # Set up the reward scheme
+        self.rewardScheme = tools.rewardSchemes.maxClassification(
+            self.params['trueReward'],
+            self.params['falseReward'])
+
+        # continue experiment
+        st = self.currIter + 1
+        self.runFullExperiment(startFrom=st)
+        
+
 
 class expMlWna(basicExperiment):
 
-    def __init__(self, jsonFile):
+    def __init__(self, jsonFile, overwriteOutput=False):
         """
             Load the jsonFile and check if it contains all the necessary parameters
 
@@ -230,7 +315,7 @@ class expMlWna(basicExperiment):
         # If the Output file exists then stop the simulation
         if not os.path.exists('Output'):
             os.makedirs('Output')
-        else:
+        elif not overwriteOutput:
             raise RuntimeError(
                 'Idiot check! An <<Output>> folder exists. Delete it to proceed!')
 
@@ -314,6 +399,37 @@ class expMlWna(basicExperiment):
                 # For any other label the mean weight stays
                 self.meanRArrayClass[label].append(
                     self.meanRArrayClass[label][-1])
+
+    def continueFromCheckpoint(self):
+
+        # Set up the experiment again
+        # Set up the network
+        self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
+        self.networkTf = mlNetwork.mlNetworkWta(self.params['layers'],
+                                                self.actFunc.value)
+        self.networkTf.setNoiseSigma(self.params['noiseSigma'])
+        self.networkTf.setHomeostaticParams(self.params['learningRateH'],
+                                            self.params['uLow'],
+                                            self.params['uHigh'])
+        self.networkTf.getInitialWeights(self.currentWs)
+        self.networkTf._createComputationalGraph()
+
+        # Set up the data handler
+        self.dataHandler = tools.dataHandler.dataHandlerMnist(
+            self.params['labels'],
+            self.params['dataSet'],
+            self.params['dataSet'])
+
+        self.dataHandler.loadTrainSet()
+
+        # Set up the reward scheme
+        self.rewardScheme = tools.rewardSchemes.maxClassification(
+            self.params['trueReward'],
+            self.params['falseReward'])
+
+        # continue experiment
+        st = self.currIter + 1
+        self.runFullExperiment(startFrom=st)
 
 
 class expMlVarifyBp(basicExperiment):
