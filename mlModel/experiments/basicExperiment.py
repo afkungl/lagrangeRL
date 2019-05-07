@@ -324,6 +324,9 @@ class expMlWna(basicExperiment):
         np.random.seed(self.params['randomSeed'])
         tf.set_random_seed(self.params['randomSeed'])
 
+        # checkpointing is turned off by default
+        self.checkpointing = False
+
     def initializeExperiment(self):
 
         # Set up the network

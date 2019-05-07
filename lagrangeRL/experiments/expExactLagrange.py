@@ -85,6 +85,9 @@ class expExactLagrange(object):
         np.random.seed(params['randomSeed'])
         tf.set_random_seed(params['randomSeed'])
 
+        # checkpointing is turned off by default
+        self.checkpointing = False
+
         self.params = params
 
     def initialize(self):
