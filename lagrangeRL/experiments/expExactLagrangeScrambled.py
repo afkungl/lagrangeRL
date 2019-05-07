@@ -88,7 +88,7 @@ class expExactLagrangeScrambled(expExactLagrange):
 
         # Set the random seed for numpy and tensorflow
         np.random.seed(params['randomSeed'])
-        tf.random.set_random_seed(params['randomSeed'])
+        tf.set_random_seed(params['randomSeed'])
 
         self.params = params
 

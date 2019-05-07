@@ -72,7 +72,7 @@ class basicExperiment(object):
         # Set the random seed for numpy and tensorflow
         # for the sake of simplicity we use the same seed
         np.random.seed(self.params['randomSeed'])
-        tf.random.set_random_seed(self.params['randomSeed'])
+        tf.set_random_seed(self.params['randomSeed'])
 
     def initializeExperiment(self):
 
@@ -322,7 +322,7 @@ class expMlWna(basicExperiment):
         # Set the random seed for numpy and tensorflow
         # for the sake of simplicity we use the same seed
         np.random.seed(self.params['randomSeed'])
-        tf.random.set_random_seed(self.params['randomSeed'])
+        tf.set_random_seed(self.params['randomSeed'])
 
     def initializeExperiment(self):
 
