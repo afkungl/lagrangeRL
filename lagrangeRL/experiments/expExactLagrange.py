@@ -240,7 +240,7 @@ class expExactLagrange(object):
         self.wToOutputArray.append(
             self.simClass.W.data[self.layers[-2]:, :self.layers[-2]].flatten())
 
-    def makeOutputFolder(self, overwriteOutput):
+    def makeOutputFolder(self, overwriteOutput=False):
 
         if os.path.exists('Output'):
             if not overwriteOutput:
