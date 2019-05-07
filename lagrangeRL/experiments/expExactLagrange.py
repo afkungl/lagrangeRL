@@ -109,13 +109,16 @@ class expExactLagrange(object):
         if 'logLevel' in self.params:
             coloredlogs.install(level=self.params['logLevel'])
 
-    def runSimulation(self):
+    def runSimulation(self, startFrom=0):
 
-        for index in range(1, self.Niter + 1):
+        for index in range(1 + startFrom, self.Niter + 1):
             self.singleIteration(index)
             if index % self.reportFrequency == 0:
                 self.plotFinalReport()
                 self.saveResults()
+            if self.checkpointing and (index % self.checkPerIter == 0):
+                self.saveCheckpoint(index)
+                self.logger.info('Checkpoint created at {}'.format(index))
 
         self.plotFinalReport()
 
@@ -237,10 +240,11 @@ class expExactLagrange(object):
         self.wToOutputArray.append(
             self.simClass.W.data[self.layers[-2]:, :self.layers[-2]].flatten())
 
-    def makeOutputFolder(self):
+    def makeOutputFolder(self, overwriteOutput):
 
         if os.path.exists('Output'):
-            sys.exit(
+            if not overwriteOutput:
+                sys.exit(
                 'There is a folder named Output. Delete it to run the simulation! I will NOT do it for you!')
         else:
             os.makedirs('Output')
@@ -390,3 +394,78 @@ class expExactLagrange(object):
         # Save to the result to output
         with open('Output/results.json', 'w') as outfile:
             json.dump(dictToSave, outfile)
+
+    def enableCheckpointing(self, perIter):
+        """
+            Turn on the checkpointing
+
+            Args:
+                -- perIter: checkpointing every perIter iteration
+        """
+
+        self.checkpointing = True
+        self.checkPerIter = perIter
+
+    def saveCheckpoint(self, currentIter):
+
+        # create a checkpoint folder if necessary
+        if not os.path.exists('Checkpoint'):
+            os.makedirs('Checkpoint')
+
+        dictToSave = {'P': {'mean': self.avgRArray}}
+        for label in self.params['labels']:
+            dictToSave['P'][label] = self.avgRArrays[label]
+        dictToSave['wWta'] = self.simClass.getWtaNetwork().tolist()
+        dictToSave['wNoWta'] = self.simClass.getNoWtaNetwork().tolist()
+        dictToSave['currentIter'] = currentIter
+
+        # Save to the result to output
+        fileName = 'Checkpoint/checkpoint_iter{}.json'.format(currentIter)
+        with open(fileName, 'w') as outfile:
+            json.dump(dictToSave, outfile)
+
+    def loadCheckpoint(self, fileName):
+
+        # Save the specified file
+        with open(fileName, 'r') as infile:
+            loadDict = json.load(infile)
+
+        # load the arrays
+        self.avgRArray = loadDict['P']['mean']
+        self.avgRArrays = {}
+        self.avgRewards = {}
+        for label in self.params['labels']:
+            self.avgRArrays[label] = loadDict['P'][str(label)]
+            self.avgRewards[label] = self.avgRArrays[label][-1]
+        self.meanReward = self.avgRArray[-1]
+
+        # load the current weights
+        self.loadWWta = np.array(loadDict['wWta'])
+        self.loadNoWta = np.array(loadDict['wNoWta'])
+
+        # Load current iteration
+        self.currIter = loadDict['currentIter']
+
+    def continueFromCheckpoint(self):
+
+        ################################
+        ## Set up the network again
+        self.initLogging()
+        self.setUpNetwork()
+        self.setUpInput()
+        self.setUpActivationFunction()
+        self.setUpDataHandler()
+        self.setUpRewardScheme()
+        self.setUpEmptyTarget()
+        loadW = np.ma.masked_array(self.loadWWta + self.loadNoWta,
+                                   self.simClass.W.mask)
+        self.simClass.W = loadW
+        self.simClass.calcWnoWta(self.layers[-1])
+        self.simClass.calcOnlyWta(self.layers[-1])
+        self.simClass.initCompGraph()
+        self.makeOutputFolder(overwriteOutput=True)
+
+        ################################
+
+        # continue
+        self.runSimulation(startFrom = self.currIter)

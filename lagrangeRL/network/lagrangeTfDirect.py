@@ -224,3 +224,17 @@ class lagrangeTfDirect(lagrangeTfOptimized):
         """
 
         return self.sess.run(self.error)
+
+    def getWtaNetwork(self):
+        """
+            Get the Wta network
+        """
+
+        return self.sess.run(self.wTfOnlyWta)
+
+    def getNoWtaNetwork(self):
+        """
+            Get the Wta network without the wta network
+        """
+
+        return self.sess.run(self.wTfNoWta)
