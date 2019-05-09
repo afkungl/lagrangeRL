@@ -271,7 +271,33 @@ class basicExperiment(object):
         # continue experiment
         st = self.currIter + 1
         self.runFullExperiment(startFrom=st)
-        
+
+    def runTesting(self, testSetFile):
+
+        # Set up the experiment again
+        # Set up the network
+        self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
+        self.networkTf = mlNetwork.mlNetwork(self.params['layers'],
+                                             self.actFunc.value)
+        self.networkTf.getInitialWeights(self.currentWs)
+        self.networkTf._createComputationalGraph()
+
+        # Set up the data handler
+        self.dataHandler = tools.dataHandler.dataHandlerMnist(
+            self.params['labels'],
+            testSetFile,
+            self.params['dataSet'])
+
+        self.dataHandler.loadTestSet()
+
+        # Set up variables and arrays
+        nLabels =  len(self.params['labels'])
+        confMatrix = np.zeros((nLabels, nLabels))
+        nTestExamples = self.dataHandler.nTest
+
+        for index in xrange(nTestExamples):
+
+            continue
 
 
 class expMlWna(basicExperiment):
