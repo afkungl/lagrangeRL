@@ -22,6 +22,7 @@ class mlNetwork(object):
         self.layers = layers
         self.actFunc = actFunc
         self.dtype = tf.float32
+        self.logger = logging.getLogger(self.__class__.__name__)
 
 
     def _createInitialWeights(self):
@@ -236,7 +237,7 @@ class mlNetworkWta(mlNetwork):
                 #                              self.noiseSigma)
                 self.lastLayerU = tfAux.tf_mat_vec_dot(
                                 w,
-                                prevAct) + 5.0 + tf.random.normal(
+                                prevAct) + 1.0 + tf.random.normal(
                                                     [self.layers[-1]],
                                                     0.,
                                                     self.noiseSigma)
@@ -311,9 +312,12 @@ class mlNetworkWta(mlNetwork):
 
         res = self.sess.run(tensors, inputDict)
 
-        print(res[0])
-        print(res[1])
-        #print(self.sess.run(self.wArrayTf[-1]))
+        self.logger.debug('The activity in the output layer is: {}'.format(res[-1]))
+        self.logger.debug('The action vector is: {}'.format(res[1]))
+
+        if np.isnan(res[-1]).any():
+            self.logger.error('There is nan in the activities of the last layer')
+            raise RuntimeError('The calculations lad to nan values in the activities')
 
         return res[0]
 
