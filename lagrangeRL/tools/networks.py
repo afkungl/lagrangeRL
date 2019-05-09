@@ -139,6 +139,63 @@ def recurrent(N, p):
     return WX
 
 
+def actorCritic(layers,
+                layersCritic,
+                wtaStrength):
+    """
+        Create the connectivity matrix of the actor critic architecture
+        The mask does not contain the wta network, but the wta network is created
+
+        Args:
+            -- layers: layers in the actor network
+            -- layersCritic: layers in the critic network. has to end with one
+                            and the first layer of the actor is shared with the critic
+            -- wtaStrength: strength of the self-excitation in the winner-nudges-all circuit
+    """
+    
+    # get metaparameters
+    nAll = np.sum(layers) + np.sum(layersCritic)
+    nActor = np.sum(layers)
+    W = np.zeros((nAll, nAll))
+    wMask = np.ones((nAll, nAll))
+
+    # use existing function of the actor path
+    wActor = feedForwardWtaReadout(layers,
+                                   wtaStrength,
+                                   noWtaMask=True)
+    W[:nActor, :nActor] = wActor.data
+    wMask[:nActor, :nActor] = wActor.mask
+
+    # set the eight from the input layer to the first hidden layer in the 
+    # critic
+    numbBefore = layers[0]
+    numbAfter = layersCritic[0]
+    norm = np.sqrt(2./float(numbBefore))
+    W[nActor:nActor + layersCritic[0], :layers[0]] = np.random.randn(numbAfter,
+                                            numbBefore) * norm
+    wMask[nActor:nActor + layersCritic[0], :layers[0]] = False
+
+    # set the connectivity in the critic network
+    low = nActor;
+    mid = nActor + layersCritic[0];
+    upper = mid + layersCritic[1]
+    for i in range(len(layersCritic) - 1):
+        wMask[mid:upper, low:mid] = False
+        # Initialize the weights
+        numbBefore = mid - low
+        numbAfter = upper - mid
+        norm = np.sqrt(2./float(numbBefore))
+        W[mid:upper, low:mid] = np.random.randn(numbAfter,
+                                                numbBefore) * norm
+        print(i)
+        if not i == len(layersCritic) - 2:
+            low = mid
+            mid = upper
+            upper += layersCritic[i + 2]
+
+    return ma.masked_array(W, wMask)
+
+
 
 if __name__ == '__main__':
 
