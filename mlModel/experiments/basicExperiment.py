@@ -158,7 +158,7 @@ class basicExperiment(object):
         """
 
         # loop through the experiment
-        for index in xrange(startFrom, self.params['Niter']):
+        for index in xrange(startFrom + 1, self.params['Niter'] + 1):
             self.singleIteration()
             self.logger.info('Iteration number {} finished.'.format(index + 1))
             # Report the weights in the last layer for debugging
