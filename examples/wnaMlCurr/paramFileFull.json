@@ -1,0 +1,17 @@
+{
+    "layers": [784,10],
+    "learningRate": 0.0001,
+    "labels": [0,1,2,3,4,5,6,7,8,9],
+    "gammaReward": 0.9,
+    "Niter": 1000000,
+    "dataSet": "../datasets/mnist_res_train.txt",
+    "trueReward": 1.0,
+    "falseReward": -1.0,
+    "logLevel": "INFO",
+    "reportFreq": 5000,
+    "randomSeed": 41311232,
+    "noiseSigma": 0.2,
+    "learningRateH": 0.01,
+    "uLow": -1.0,
+    "uHigh": 4.0
+}
