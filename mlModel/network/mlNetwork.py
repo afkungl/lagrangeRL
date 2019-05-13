@@ -338,6 +338,35 @@ class mlNetworkWta(mlNetwork):
 
         return res[0]
 
+    def getActionVector(self, inputData):
+        '''
+            The computation graph is evaluated once and the current 
+            action vector is reported
+
+            This should only be used for testing
+        '''
+
+        tensors = [self.R, self.getActionVectorTf, self.updateH] + self.updParArray + self.activities
+        # for the input dictionary only the input data is real
+        # the rest is just placeholder to get an action
+        # the learning rate has to be 0.0 in order not to change the weights
+        # during testing
+        inputDict = {self.inputPh: inputData,
+                     self.trueLabel: np.zeros(self.layers[-1]),
+                     self.meanReward: 0.0,
+                     self.learningRateTf: 0.0}
+
+        res = self.sess.run(tensors, inputDict)
+
+        self.logger.debug('The activity in the output layer is: {}'.format(res[-1]))
+        self.logger.debug('The action vector is: {}'.format(res[1]))
+
+        if np.isnan(res[-1]).any():
+            self.logger.error('There is nan in the activities of the last layer')
+            raise RuntimeError('The calculations led to nan values in the activities')
+
+        return res[1]
+
     def getUpdateParameters(self, index, wTf):
         '''
             Create a tensor to update the parameters in the connection matrices

@@ -295,9 +295,24 @@ class basicExperiment(object):
         confMatrix = np.zeros((nLabels, nLabels))
         nTestExamples = self.dataHandler.nTest
 
-        for index in xrange(nTestExamples):
+        for index in xrange(1, nTestExamples + 1):
 
-            continue
+            # Get a random input example
+            example = self.dataHandler.getNextTestExample()[0]
+            currentLabel = self.params['labels'][np.argmax(example['label'])]
+            labelIndex = np.where(example['label'] == 1)[0][0]
+
+            # Take an action
+            actionVector = self.networkTf.getActionVector(example['data'])
+            actionIndex = np.argmax(actionVector)
+            actionLabel = self.params['labels'][actionIndex]
+
+            # add instance to confusion matrix
+            confMatrix[labelIndex, actionIndex] += 1
+            self.logger.info('Test example {} evaluated'.format(index))
+
+        
+        return confMatrix
 
 
 class expMlWna(basicExperiment):
@@ -459,6 +474,53 @@ class expMlWna(basicExperiment):
         # continue experiment
         st = self.currIter + 1
         self.runFullExperiment(startFrom=st)
+
+
+    def runTesting(self, testSetFile):
+
+        # Set up the experiment again
+        # Set up the network
+        self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
+        self.networkTf = mlNetwork.mlNetworkWta(self.params['layers'],
+                                                self.actFunc.value)
+        self.networkTf.setNoiseSigma(self.params['noiseSigma'])
+        self.networkTf.setHomeostaticParams(self.params['learningRateH'],
+                                            self.params['uLow'],
+                                            self.params['uHigh'])
+        self.networkTf.getInitialWeights(self.currentWs)
+        self.networkTf._createComputationalGraph()
+
+        # Set up the data handler
+        self.dataHandler = tools.dataHandler.dataHandlerMnist(
+            self.params['labels'],
+            testSetFile,
+            self.params['dataSet'])
+
+        self.dataHandler.loadTestSet()
+
+        # Set up variables and arrays
+        nLabels =  len(self.params['labels'])
+        confMatrix = np.zeros((nLabels, nLabels))
+        nTestExamples = self.dataHandler.nTest
+
+        for index in xrange(1, nTestExamples + 1):
+
+            # Get a random input example
+            example = self.dataHandler.getNextTestExample()[0]
+            currentLabel = self.params['labels'][np.argmax(example['label'])]
+            labelIndex = np.where(example['label'] == 1)[0][0]
+
+            # Take an action
+            actionVector = self.networkTf.getActionVector(example['data'])
+            actionIndex = np.argmax(actionVector)
+            actionLabel = self.params['labels'][actionIndex]
+
+            # add instance to confusion matrix
+            confMatrix[labelIndex, actionIndex] += 1
+            self.logger.info('Test example {} evaluated'.format(index))
+
+        
+        return confMatrix
 
 
 class expMlVarifyBp(basicExperiment):
