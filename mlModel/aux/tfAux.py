@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 def tf_mat_vec_dot(matrix, vector):
     '''
@@ -52,3 +53,34 @@ def jacobian(fx, x, parallel_iterations=10):
                tf.reshape(fx, [-1]),
                dtype=x.dtype,
                parallel_iterations=parallel_iterations)
+
+def indicator_func(x, low, upper):
+    '''
+        The indicator function in tensorflow
+        The value is one exactly between low and upper, otherwise zero
+    '''
+
+    return 0.5 * (tf.sign(upper - x) + 1.0) * 0.5 * (tf.sign(x - low) + 1.)
+
+def homFunc(x, low, upper, width):
+    '''
+        Auxiliary function for the nudging modulated homeostasis.
+
+        Args:
+            x: input value
+            low: lower limit
+            upper: upper limit
+            width: width of the transition ot zero
+
+        Return:
+             x < low - width: 0.0
+             low - width < x < low: sinusoidal ramp up
+             low < x < upper: 1.0
+             upper < x < upper + width: sinusoidal ramp down
+             upper + width < x: 0.0
+    '''
+
+    return 0.5 * (1. - tf.cos((x - (low - width))/width * np.pi)) * indicator_func(x, low - width, low) \
+        + indicator_func(x, low, upper) \
+        + 0.5 * (1. + tf.cos((x - upper)/width * np.pi)) * \
+        indicator_func(x, upper, upper + width)
