@@ -372,10 +372,13 @@ class mlNetworkWta(mlNetwork):
             Create a tensor to update the parameters in the connection matrices
         '''
 
+        mat = tfAux.tf_mat_vec_dot(self.wnaTf, self.activities[-1]) * \
+                tfAux.homFunc(self.memPots[-1], self.uLow, self.uHigh, 0.5)
+ 
         return tf.assign(wTf,
                          wTf + self.learningRateTf * self.modulatorTf * tf.einsum('kij,k->ij',
                                     self.wgradArr[index],
-                                    tfAux.tf_mat_vec_dot(self.wnaTf, self.activities[-1]))
+                                     mat)
                         )
 
     def setNoiseSigma(self, noiseSigma):
