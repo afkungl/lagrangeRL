@@ -45,11 +45,11 @@ class sigmoidTf(object):
 
     def valuePrime(self, x):
 
-        return self.value(x) * (1. - self.value(x))
+        return tf.gradients(self.value(x), x)[0]
 
     def valuePrimePrime(self, x):
 
-        return self.valuePrime(x) * (1. - 2. * self.value(x))
+        return tf.gradients(self.valuePrime(x), x)[0]
 
     def value3Prime(self, x):
 

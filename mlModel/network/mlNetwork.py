@@ -243,7 +243,7 @@ class mlNetworkWta(mlNetwork):
                 #                              self.noiseSigma)
                 self.memPots.append(tfAux.tf_mat_vec_dot(
                                 w,
-                                prevAct) + 3.0 + tf.random.normal(
+                                prevAct) + 0.0 + tf.random.normal(
                                                     [self.layers[-1]],
                                                     0.,
                                                     self.noiseSigma))
@@ -490,7 +490,7 @@ class mlNetworkWtaVerifyBp(mlNetworkWta):
                 #                              self.noiseSigma)
                 self.lastLayerU = tfAux.tf_mat_vec_dot(
                                 w,
-                                prevAct) + 5.0 + tf.random.normal(
+                                prevAct) + 0.0 + tf.random.normal(
                                                     [self.layers[-1]],
                                                     0.,
                                                     self.noiseSigma)
@@ -556,3 +556,184 @@ class mlNetworkWtaVerifyBp(mlNetworkWta):
         # start the session
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
+
+class mlNetworkSelfPred(mlNetworkWta):
+    """
+    
+        This network implementation inherits everything from the machine learning model except for the calcualtion of the gradient. 
+        The gradient is calculated from the self predicting nudging
+
+    """
+
+    def __init__(self, layers, actFunc, actFuncPrime, dtype=tf.float32):
+        """ Constructor
+
+        Args:
+            layers: list withn the number of layers from the input to the
+                output layer.
+            actFunc: an activation function file
+            dtype: type to be used by tensorflow
+        """
+
+        self.layers = layers
+        self.actFunc = actFunc
+        self.actFuncPrime = actFuncPrime
+        self.dtype = tf.float32
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    def _createComputationalGraph(self):
+        """
+            Create the computational graph ready to start
+        """
+
+        # Check if the weights are initialized
+        if not 'wInits' in dir(self):
+            raise RuntimeError("The weights have to be inititalized before creating the computational graph!")
+
+        # Input placeholders
+        self.inputPh = tf.placeholder(dtype=self.dtype,
+                                      shape=(self.layers[0]))
+        self.trueLabel = tf.placeholder(dtype=self.dtype,
+                                        shape=(self.layers[-1]))
+        self.meanReward = tf.placeholder(dtype=self.dtype,
+                                         shape=())
+        self.learningRateTf = tf.placeholder(dtype=self.dtype,
+                                             shape=())
+        self.actionBias = tf.Variable(np.zeros(self.layers[-1]),
+                                      dtype=self.dtype)
+
+        # winner nudges all circuit
+        nNeurons = self.layers[-1]
+        wnaW = np.ones((nNeurons, nNeurons)) * (-1.)/(nNeurons - 1.)
+        np.fill_diagonal(wnaW, 1.) 
+        self.wnaTf = tf.Variable(wnaW, dtype=self.dtype)
+
+        # network array
+        self.wArrayTf = []
+        for w in self.wInits:
+            self.wArrayTf.append(tf.Variable(w, dtype=self.dtype))
+
+        # forward pass of action selection
+        self.activities = []
+        self.memPots = []
+        for index, w in enumerate(self.wArrayTf):
+
+            # get the appropriate input
+            if index == 0:
+                prevAct = self.inputPh
+            else:
+                prevAct = self.activities[index - 1]
+
+            # calculate the next layer activity (firing rate)
+            # based on the previous activity level
+            if index == len(self.wArrayTf) - 1:
+                #randomCont = tf.random.normal([self.layers[-1]],
+                #                              0.,
+                #                              self.noiseSigma)
+                self.memPots.append(tfAux.tf_mat_vec_dot(
+                                w,
+                                prevAct) + self.actionBias + tf.random.normal(
+                                                    [self.layers[-1]],
+                                                    0.,
+                                                    self.noiseSigma))
+                self.activities.append(
+                        self.actFunc(self.memPots[-1]))
+            else:
+                self.memPots.append(tfAux.tf_mat_vec_dot(
+                                                    w,
+                                                    prevAct))
+                self.activities.append(self.actFunc(self.memPots[-1]))
+
+        # get action vector
+        self.actionVector = tf.Variable(np.zeros(self.layers[-1]),
+                                        dtype=self.dtype)
+        self.actionIndex = tf.Variable(0,
+                                       dtype=tf.int64)
+        self.cleanActionVector = self.actionVector.assign(
+                                        tf.zeros([self.layers[-1]]))
+        with tf.control_dependencies(self.activities + [self.cleanActionVector]):
+            self.getAction = self.actionIndex.assign(
+                                tf.math.argmax(self.activities[-1]))
+
+        with tf.control_dependencies(self.activities+ [self.getAction]):
+            self.getActionVectorTf = tf.scatter_update(self.actionVector,
+                                                     self.actionIndex,
+                                                     1.)
+
+        # obtain reward
+        with tf.control_dependencies([self.getActionVectorTf]):
+            self.R = tf.cond(tf.reduce_all(tf.equal(self.actionVector,
+                                                    self.trueLabel)),
+                             lambda: 1.0,
+                             lambda: -1.0)
+
+        # Set up the parameter updates
+        # Modulator
+        self.modulatorTf = self.R - tf.math.maximum(0., self.meanReward)
+
+        # get the gradients
+        with tf.control_dependencies([self.getActionVectorTf, self.R, self.modulatorTf] + self.memPots + self.activities):
+            self.wgradArr = []
+            for wTf in self.wArrayTf:
+                self.wgradArr.append(tf.stack(tfAux.jacobian(self.activities[-1],
+                                                         wTf)))
+
+            # tensors to update the parameters
+            self.updParArray = []
+            for index, wTf in enumerate(self.wArrayTf):
+                self.updParArray.append(self.getUpdateParameters(index, wTf))
+            self.updParArray.append(self.getHomParameters())
+
+            # do the homoestatic update
+            #self.homUpdate = (tf.nn.relu(self.uLow - self.memPots[-1]) - tf.nn.relu(self.memPots[-1] - self.uHigh))
+            if len(self.layers) == 2:
+                prevAct = self.inputPh
+            else:
+                prevAct = self.activities[-2]
+            with tf.control_dependencies(self.updParArray):
+                self.updateH = []
+                self.homRule = []
+                for (index, wTf) in enumerate(self.wArrayTf):
+                    if index == 0:
+                        prevAct = self.inputPh
+                    else:
+                        prevAct = self.activities[index - 1]
+                    if True:
+                        self.homRule.append(tf.nn.relu(self.uLow - self.memPots[index]) - tf.nn.relu(self.memPots[index] - self.uHigh))
+                        self.updateH.append(wTf.assign(wTf + 
+                            self.learningRateH * tfTools.tf_outer_product(
+                                                    self.homRule[-1],
+                                                    prevAct)))
+
+        # start the session
+        self.sess = tf.Session()
+        self.sess.run(tf.global_variables_initializer())
+
+
+    def getUpdateParameters(self, index, wTf):
+        '''
+            Create a tensor to update the parameters in the connection matrices
+        '''
+
+        eRl = tfAux.tf_mat_vec_dot(self.wnaTf, self.activities[-1])
+        eHom = (-1.) * self.memPots[-1]
+        eSelfPred = self.actFuncPrime(self.memPots[-1]) * \
+                    tfAux.tf_mat_vec_dot(self.wnaTf, self.memPots[-1] - \
+                    tfAux.tf_mat_vec_dot(self.wnaTf, self.activities[-1]))
+
+        errorvec = eRl +  0.0 * eHom + eSelfPred
+ 
+        return tf.assign(wTf,
+                         wTf + self.learningRateTf * (self.modulatorTf * tf.einsum('kij,k->ij',
+                                    self.wgradArr[index],
+                                    eRl + eSelfPred) + \
+                                    0.0 * tf.abs(self.modulatorTf) * tf.einsum('kij,k->ij',
+                                    self.wgradArr[index],
+                                    eHom))
+                        )
+
+    def getHomParameters(self):
+        ''' Add the homeostatic paramters '''
+
+        eHom = (-1.) * self.memPots[-1]
+        return tf.assign(self.actionBias, self.actionBias + 0.6 * self.learningRateTf *  tf.abs(self.modulatorTf) * eHom)
