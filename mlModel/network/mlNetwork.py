@@ -212,6 +212,8 @@ class mlNetworkWta(mlNetwork):
                                          shape=())
         self.learningRateTf = tf.placeholder(dtype=self.dtype,
                                              shape=())
+        self.actionBias = tf.Variable(np.ones(self.layers[-1]) * self.uTargetH,
+                                      dtype=self.dtype)
 
         # winner nudges all circuit
         nNeurons = self.layers[-1]
@@ -243,7 +245,7 @@ class mlNetworkWta(mlNetwork):
                 #                              self.noiseSigma)
                 self.memPots.append(tfAux.tf_mat_vec_dot(
                                 w,
-                                prevAct) + 0.0 + tf.random.normal(
+                                prevAct) + self.actionBias + tf.random.normal(
                                                     [self.layers[-1]],
                                                     0.,
                                                     self.noiseSigma))
@@ -290,9 +292,11 @@ class mlNetworkWta(mlNetwork):
                                                          wTf)))
 
             # tensors to update the parameters
+            self.errorvec = tfAux.tf_mat_vec_dot(self.wnaTf, self.activities[-1])
             self.updParArray = []
             for index, wTf in enumerate(self.wArrayTf):
                 self.updParArray.append(self.getUpdateParameters(index, wTf))
+            #self.updParArray.append(self.getHomParameters())
 
             # do the homoestatic update
             #self.homUpdate = (tf.nn.relu(self.uLow - self.memPots[-1]) - tf.nn.relu(self.memPots[-1] - self.uHigh))
@@ -309,8 +313,8 @@ class mlNetworkWta(mlNetwork):
                     else:
                         prevAct = self.activities[index - 1]
                     if True:
-                        self.homRule.append(tf.nn.relu(self.uLow - self.memPots[index]) - tf.nn.relu(self.memPots[index] - self.uHigh))
-                        self.updateH.append(wTf.assign(wTf + 
+                        self.homRule.append(self.uTargetH - self.memPots[index])
+                        self.updateH.append(wTf.assign(wTf + tf.math.abs(self.modulatorTf) * 
                             self.learningRateH * tfTools.tf_outer_product(
                                                     self.homRule[-1],
                                                     prevAct)))
@@ -321,7 +325,7 @@ class mlNetworkWta(mlNetwork):
 
     def doOneIteration(self, inputData, trueLabel, learningRate, meanR):
 
-        tensors = [self.R, self.getActionVectorTf, self.updateH] + self.updParArray + self.activities
+        tensors = [self.R, self.getActionVectorTf] + self.updateH + self.activities + [self.errorvec]
         inputDict = {self.inputPh: inputData,
                      self.trueLabel: trueLabel,
                      self.meanReward: meanR,
@@ -329,8 +333,10 @@ class mlNetworkWta(mlNetwork):
 
         res = self.sess.run(tensors, inputDict)
 
-        self.logger.debug('The activity in the output layer is: {}'.format(res[-1]))
+        self.logger.debug('The activity in the output layer is: {}'.format(res[-2]))
         self.logger.debug('The action vector is: {}'.format(res[1]))
+        self.logger.debug('The obtained reward is: {}'.format(res[0]))
+        self.logger.debug('Ther percieved error vector is: {}'.format(res[-1]))
 
         if np.isnan(res[-1]).any():
             self.logger.error('There is nan in the activities of the last layer')
@@ -346,7 +352,7 @@ class mlNetworkWta(mlNetwork):
             This should only be used for testing
         '''
 
-        tensors = [self.R, self.getActionVectorTf, self.updateH] + self.updParArray + self.activities
+        tensors = [self.R, self.getActionVectorTf, self.updateH] + self.updParArray + self.activities + [self.errorvec]
         # for the input dictionary only the input data is real
         # the rest is just placeholder to get an action
         # the learning rate has to be 0.0 in order not to change the weights
@@ -355,11 +361,11 @@ class mlNetworkWta(mlNetwork):
                      self.trueLabel: np.zeros(self.layers[-1]),
                      self.meanReward: 0.0,
                      self.learningRateTf: 0.0}
-
         res = self.sess.run(tensors, inputDict)
 
-        self.logger.debug('The activity in the output layer is: {}'.format(res[-1]))
+        self.logger.debug('The activity in the output layer is: {}'.format(res[-2]))
         self.logger.debug('The action vector is: {}'.format(res[1]))
+
 
         if np.isnan(res[-1]).any():
             self.logger.error('There is nan in the activities of the last layer')
@@ -372,22 +378,25 @@ class mlNetworkWta(mlNetwork):
             Create a tensor to update the parameters in the connection matrices
         '''
 
-        mat = tfAux.tf_mat_vec_dot(self.wnaTf, self.activities[-1]) * \
+         # * \
+                #tfAux.homFunc(self.memPots[-1], self.uLow, self.uHigh, 0.5)
+        mat = self.errorvec * \
                 tfAux.homFunc(self.memPots[-1], self.uLow, self.uHigh, 0.5)
  
         return tf.assign(wTf,
                          wTf + self.learningRateTf * self.modulatorTf * tf.einsum('kij,k->ij',
                                     self.wgradArr[index],
-                                     mat)
+                                    mat)
                         )
 
     def setNoiseSigma(self, noiseSigma):
 
         self.noiseSigma = noiseSigma
 
-    def setHomeostaticParams(self, learningRateH, uLow, uHigh):
+    def setHomeostaticParams(self, learningRateH, uTargetH, uLow, uHigh):
 
         self.learningRateH = learningRateH
+        self.uTargetH = uTargetH
         self.uLow = uLow
         self.uHigh = uHigh
 
@@ -410,6 +419,12 @@ class mlNetworkWta(mlNetwork):
                                 self.actionVectorPh: actionVector,
                                 self.inputPh: inputVector,
                                 self.learningRateTf: learningRate})
+
+    def getHomParameters(self):
+        ''' Add the homeostatic paramters '''
+
+        eHom = (-1.) * (self.memPots[-1] - self.uTargetH)
+        return tf.assign(self.actionBias, self.actionBias + self.learningRateH * tf.abs(self.modulatorTf) * eHom)
 
 
 

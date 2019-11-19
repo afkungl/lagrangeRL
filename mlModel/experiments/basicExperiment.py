@@ -166,8 +166,8 @@ class basicExperiment(object):
             self.singleIteration()
             self.logger.info('Iteration number {} finished.'.format(index + 1))
             # Report the weights in the last layer for debugging
-            self.logger.debug('Weights in last layer {}'.format(
-                    self.networkTf._getLastLayerWeights()))
+            #self.logger.debug('Weights in last layer {}'.format(
+            #        self.networkTf._getLastLayerWeights()))
 
             if index % self.params['reportFreq'] == 0:
                 visualization.plotMeanReward(self.meanRArray,
@@ -340,6 +340,7 @@ class expMlWna(basicExperiment):
                            'randomSeed',
                            'noiseSigma',
                            'learningRateH',
+                           'uTarget',
                            'uLow',
                            'uHigh']
 
@@ -379,12 +380,13 @@ class expMlWna(basicExperiment):
     def initializeExperiment(self):
 
         # Set up the network
-        self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
+        self.actFunc = activationFunctions.softReluTf(1.0, 0., 1.0)
         self.networkTf = mlNetwork.mlNetworkWta(self.params['layers'],
                                                 self.actFunc.value)
         # tf.nn.relu)
         self.networkTf.setNoiseSigma(self.params['noiseSigma'])
         self.networkTf.setHomeostaticParams(self.params['learningRateH'],
+                                            self.params['uTarget'],
                                             self.params['uLow'],
                                             self.params['uHigh'])
         self.networkTf.initialize()
@@ -421,6 +423,7 @@ class expMlWna(basicExperiment):
                 --- update the parameters
         """
 
+        self.logger.info('============= new iteration =============')
         # Get a random input example
         example = self.dataHandler.getRandomTrainExample()[0]
         currentLabel = self.params['labels'][np.argmax(example['label'])]
@@ -497,6 +500,7 @@ class expMlWna(basicExperiment):
                                                 self.actFunc.value)
         self.networkTf.setNoiseSigma(self.params['noiseSigma'])
         self.networkTf.setHomeostaticParams(self.params['learningRateH'],
+                                            self.params['uTarget'],
                                             self.params['uLow'],
                                             self.params['uHigh'])
         self.networkTf.getInitialWeights(self.currentWs)
