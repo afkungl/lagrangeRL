@@ -113,6 +113,8 @@ class basicExperiment(object):
                 --- update the parameters
         """
 
+        self.logger.info('================ new iteration ================')
+
         # Get a random input example
         example = self.dataHandler.getRandomTrainExample()[0]
         currentLabel = self.params['labels'][np.argmax(example['label'])]
@@ -125,6 +127,7 @@ class basicExperiment(object):
         # Observe reward
         currentReward = self.rewardScheme.obtainReward(example['label'],
                                                        actionVector)
+        self.logger.info('Current reward: {}'.format(currentReward))
 
         # Update the parameters
         modulator = currentReward - self.meanRArray[-1]
@@ -151,6 +154,9 @@ class basicExperiment(object):
                 # For any other label the mean weight stays
                 self.meanRArrayClass[label].append(
                     self.meanRArrayClass[label][-1])
+        self.logger.info('Mean expected reward: {}'.format(self.meanRArray[-1]))
+        rewardsPerClass = [val[-1] for val in self.meanRArrayClass.values()]
+        self.logger.info('Rewards per class: {}'.format(rewardsPerClass))
 
     def runFullExperiment(self, startFrom=0):
         """
@@ -162,8 +168,8 @@ class basicExperiment(object):
             self.singleIteration()
             self.logger.info('Iteration number {} finished.'.format(index + 1))
             # Report the weights in the last layer for debugging
-            self.logger.debug('Weights in last layer {}'.format(
-                    self.networkTf._getLastLayerWeights()))
+            #self.logger.debug('Weights in last layer {}'.format(
+            #        self.networkTf._getLastLayerWeights()))
 
             if index % self.params['reportFreq'] == 0:
                 visualization.plotMeanReward(self.meanRArray,

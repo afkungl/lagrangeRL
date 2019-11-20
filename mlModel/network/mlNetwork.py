@@ -331,6 +331,7 @@ class mlNetworkWta(mlNetwork):
 
         self.logger.debug('The activity in the output layer is: {}'.format(res[-1]))
         self.logger.debug('The action vector is: {}'.format(res[1]))
+        self.logger.debug('The correct action vector: {}'.format(trueLabel))
 
         if np.isnan(res[-1]).any():
             self.logger.error('There is nan in the activities of the last layer')
