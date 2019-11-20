@@ -610,3 +610,137 @@ class expMlWnaVerifyBp(expMlWna):
         for label in self.params['labels']:
             self.meanRArrayClass[label] = [0]
         self.currentRArray = []
+
+class expMlSelfPred(expMlWna):
+    """
+
+        Experiment identical to the basic Experiment but the last layer of weights is not updated
+
+    """
+
+    def initializeExperiment(self):
+
+        # Set up the network
+        self.actFuncObject = activationFunctions.sigmoidTf(width=(1.0/3.0))
+        self.actFunc = self.actFuncObject.value
+        self.actFuncPrime = self.actFuncObject.valuePrime
+        self.networkTf = mlNetwork.mlNetworkSelfPred(
+                                        self.params['layers'],
+                                        self.actFunc,
+                                        self.actFuncPrime)
+        # tf.nn.relu)
+        self.networkTf.setNoiseSigma(self.params['noiseSigma'])
+        self.networkTf.setHomeostaticParams(self.params['learningRateH'],
+                                            self.params['uLow'],
+                                            self.params['uHigh'])
+        self.networkTf.initialize()
+
+        # Set up the data handler
+        self.dataHandler = tools.dataHandler.dataHandlerMnist(
+            self.params['labels'],
+            self.params['dataSet'],
+            self.params['dataSet'])
+
+
+        self.dataHandler.loadTrainSet()
+
+        # Set up the reward scheme
+        self.rewardScheme = tools.rewardSchemes.maxClassification(
+            self.params['trueReward'],
+            self.params['falseReward'])
+
+        # Set up arrays and parameters to save the progress
+        self.meanR = 0
+        self.meanRArray = [0]
+        self.meanRArrayClass = {}
+        for label in self.params['labels']:
+            self.meanRArrayClass[label] = [0]
+        self.currentRArray = []
+
+class expMlDirectNodePert(expMlWna):
+    """
+
+        Experiment identical to the basic Experiment but the last layer of weights is not updated
+
+    """
+
+    def initializeExperiment(self):
+
+        # Set up the network
+        self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
+        self.networkTf = mlNetwork.mlNetworkDirectNodePert(
+                                        self.params['layers'],
+                                        self.actFunc.value)
+        # tf.nn.relu)
+        self.networkTf.setNoiseSigma(self.params['noiseSigma'])
+        self.networkTf.setHomeostaticParams(self.params['learningRateH'],
+                                            self.params['uLow'],
+                                            self.params['uHigh'])
+        self.networkTf.initialize()
+
+        # Set up the data handler
+        self.dataHandler = tools.dataHandler.dataHandlerMnist(
+            self.params['labels'],
+            self.params['dataSet'],
+            self.params['dataSet'])
+
+
+        self.dataHandler.loadTrainSet()
+
+        # Set up the reward scheme
+        self.rewardScheme = tools.rewardSchemes.maxClassification(
+            self.params['trueReward'],
+            self.params['falseReward'])
+
+        # Set up arrays and parameters to save the progress
+        self.meanR = 0
+        self.meanRArray = [0]
+        self.meanRArrayClass = {}
+        for label in self.params['labels']:
+            self.meanRArrayClass[label] = [0]
+        self.currentRArray = []
+
+class expMlCombinedNodePret(expMlWna):
+    """
+
+        Experiment identical to the basic Experiment but the last layer of weights is not updated
+
+    """
+
+    def initializeExperiment(self):
+
+        # Set up the network
+        self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
+        self.networkTf = mlNetwork.mlNetworkCombinedNodePert(
+                                        self.params['layers'],
+                                        self.actFunc.value,
+                                        self.actFunc.valuePrime)
+        # tf.nn.relu)
+        self.networkTf.setNoiseSigma(self.params['noiseSigma'])
+        self.networkTf.setHomeostaticParams(self.params['learningRateH'],
+                                            self.params['uLow'],
+                                            self.params['uHigh'])
+        self.networkTf.setBeta(self.params['beta'])
+        self.networkTf.initialize()
+
+        # Set up the data handler
+        self.dataHandler = tools.dataHandler.dataHandlerMnist(
+            self.params['labels'],
+            self.params['dataSet'],
+            self.params['dataSet'])
+
+
+        self.dataHandler.loadTrainSet()
+
+        # Set up the reward scheme
+        self.rewardScheme = tools.rewardSchemes.maxClassification(
+            self.params['trueReward'],
+            self.params['falseReward'])
+
+        # Set up arrays and parameters to save the progress
+        self.meanR = 0
+        self.meanRArray = [0]
+        self.meanRArrayClass = {}
+        for label in self.params['labels']:
+            self.meanRArrayClass[label] = [0]
+        self.currentRArray = []
