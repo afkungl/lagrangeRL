@@ -419,6 +419,8 @@ class expMlWna(basicExperiment):
                 --- update the parameters
         """
 
+        self.logger.info('================ new iteration ================')
+
         # Get a random input example
         example = self.dataHandler.getRandomTrainExample()[0]
         currentLabel = self.params['labels'][np.argmax(example['label'])]
