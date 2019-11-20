@@ -343,7 +343,9 @@ class expMlWna(basicExperiment):
                            'noiseSigma',
                            'learningRateH',
                            'uLow',
-                           'uHigh']
+                           'uHigh',
+                           'learningRateHt',
+                           'uTarget']
 
         # Load the parameters from the json file
         with open(jsonFile, 'r') as f:
@@ -384,7 +386,9 @@ class expMlWna(basicExperiment):
         self.networkTf.setNoiseSigma(self.params['noiseSigma'])
         self.networkTf.setHomeostaticParams(self.params['learningRateH'],
                                             self.params['uLow'],
-                                            self.params['uHigh'])
+                                            self.params['uHigh'],
+                                            self.params['learningRateHt'],
+                                            self.params['uTarget'])
         self.networkTf.initialize()
 
         # Set up the data handler
@@ -432,6 +436,7 @@ class expMlWna(basicExperiment):
                                     self.params['learningRate'],
                                     self.meanRArray[-1])
         self.logger.info('The true label is {}'.format(example['label']))
+        self.logger.info('The current reward is: {}'.format(currentReward))
 
         # Save the observed rewards into the respective arrays
         self.currentRArray.append(currentReward)
@@ -451,6 +456,9 @@ class expMlWna(basicExperiment):
                 # For any other label the mean weight stays
                 self.meanRArrayClass[label].append(
                     self.meanRArrayClass[label][-1])
+        self.logger.info('Mean expected reward: {}'.format(self.meanRArray[-1]))
+        rewardsPerClass = [val[-1] for val in self.meanRArrayClass.values()]
+        self.logger.info('Rewards per class: {}'.format(rewardsPerClass))
 
     def continueFromCheckpoint(self):
 
@@ -462,7 +470,9 @@ class expMlWna(basicExperiment):
         self.networkTf.setNoiseSigma(self.params['noiseSigma'])
         self.networkTf.setHomeostaticParams(self.params['learningRateH'],
                                             self.params['uLow'],
-                                            self.params['uHigh'])
+                                            self.params['uHigh'],
+                                            self.params['learningRateHt'],
+                                            self.params['uTarget'])
         self.networkTf.getInitialWeights(self.currentWs)
         self.networkTf._createComputationalGraph()
 
@@ -494,7 +504,9 @@ class expMlWna(basicExperiment):
         self.networkTf.setNoiseSigma(self.params['noiseSigma'])
         self.networkTf.setHomeostaticParams(self.params['learningRateH'],
                                             self.params['uLow'],
-                                            self.params['uHigh'])
+                                            self.params['uHigh'],
+                                            self.params['learningRateHt'],
+                                            self.params['uTarget'])
         self.networkTf.getInitialWeights(self.currentWs)
         self.networkTf._createComputationalGraph()
 

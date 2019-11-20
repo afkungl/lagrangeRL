@@ -303,17 +303,26 @@ class mlNetworkWta(mlNetwork):
             with tf.control_dependencies(self.updParArray):
                 self.updateH = []
                 self.homRule = []
+                self.homTarget = []
                 for (index, wTf) in enumerate(self.wArrayTf):
                     if index == 0:
                         prevAct = self.inputPh
                     else:
                         prevAct = self.activities[index - 1]
-                    if True:
-                        self.homRule.append(tf.nn.relu(self.uLow - self.memPots[index]) - tf.nn.relu(self.memPots[index] - self.uHigh))
-                        self.updateH.append(wTf.assign(wTf + 
-                            self.learningRateH * tfTools.tf_outer_product(
-                                                    self.homRule[-1],
-                                                    prevAct)))
+
+                    # Homeostatis at the border
+                    self.homRule.append(tf.nn.relu(self.uLow - self.memPots[index]) - tf.nn.relu(self.memPots[index] - self.uHigh))
+
+                    # Homeostatis towards the middle
+                    self.homTarget.append(self.uTarget - self.memPots[index])
+                    self.updateH.append(wTf.assign(wTf + 
+                        self.learningRateH * tfTools.tf_outer_product(
+                                                self.homRule[-1],
+                                                prevAct) +
+                        self.learningRateHt * tf.math.abs(self.modulatorTf) * 
+                        tfTools.tf_outer_product(self.homTarget[-1],
+                                                 prevAct)
+                                                ))
 
         # start the session
         self.sess = tf.Session()
@@ -386,11 +395,13 @@ class mlNetworkWta(mlNetwork):
 
         self.noiseSigma = noiseSigma
 
-    def setHomeostaticParams(self, learningRateH, uLow, uHigh):
+    def setHomeostaticParams(self, learningRateH, uLow, uHigh, learningRateHt, uTarget):
 
         self.learningRateH = learningRateH
         self.uLow = uLow
         self.uHigh = uHigh
+        self.learningRateHt = learningRateHt
+        self.uTarget = uTarget
 
     def updateParameters(self,
                          inputVector,
