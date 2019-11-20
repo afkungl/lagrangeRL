@@ -22,7 +22,8 @@ The following theorem abstracts away the biological details and condenses the ma
 
 \begin{theorem}
 Let there be the real numbers $\alpha_1, \alpha_2, \dots ,\alpha_N \in \mathbb{R}$ and $\sigma \in \mathbb{R}$, $N \geq 2$.
-Consider a matrix $M \in \mathbb{R}^{N\times N}$ with $m_{ij} = - m_{ii} \frac{1}{N-1} \; \forall i \neq j; i,j \in \{1,\dots,N\}$, and with $m_{ii} = m_{jj} > 0 \quad \forall i,j \in \{1,\dots,N\}$.
+Consider a matrix $M \in \mathbb{R}^{N\times N}$ with $m_{ij} = - m_{ii} \frac{1}{N-1} \; \forall i \neq j; i,j \in \{1,\dots,N\}$, and with $m_{ii} = 1 > 0 \quad \forall i \in \{1,\dots,N\}$.
+Further let $m \in \mathbb{R}$.
 Let there be the random variables $x_1, x_2, \dots , x_N$ each independently following the normal distribution $x_k \sim \mathcal{N}(\alpha_k, \sigma^2)$.
 $x = (x_1, \dots, x_N)$ denotes the vector of these random variables.
 We define the reward function $R: \mathbb{N}^2 \to \{-1,1\}$ by:
@@ -35,42 +36,70 @@ We define the reward function $R: \mathbb{N}^2 \to \{-1,1\}$ by:
     \end{equation}
 For an arbitrary but fixed $l \in {1,\dots,N}$ we define the vectors $v,w \in \mathbb{R}^N$:
     \begin{align}
-        v &:= R(l, \mathrm{argmax}(x)) M x\\
-        w_i &:= R(l, \mathrm{argmax}(x)) \left[\delta_{i, \mathrm{argmax}(x)} - \frac{\exp(\frac{\alpha_i}{\sigma})}{\sum_{k=1}^{N}\exp(\frac{\alpha_k}{\sigma})}\right] 
+        v &:= R(l, \mathrm{argmax}(\mathrm{x})) m M \mathrm{x}\\
+        w_i &:= R(l, \mathrm{argmax}(\mathrm{x})) \left[\delta_{i, \mathrm{argmax}(\mathrm{x})} - p_i \right] 
     \end{align}
-Then
+where $p_i$ is the probability that the $i$-th random variable is the largest in the sample: and we define the vector of these probabilities $\mathbf{p} := (p_1, p_2, \dots, p_N)$.
+Then the angle between the vectors $\mathbf{v}$ and $\mathbf{w}$ is smaller or equal $\frac{\pi}{2}$, that is
     \begin{equation}
-        \mathrm{Exp} \left [ \frac{\langle v; w \rangle}{\sqrt{\langle v; v\rangle \langle w;w \rangle}} \right] > 0
+        \cos [\sphericalangle(\mathbf{v}, \mathbf{w})] \leq 0.
     \end{equation}
-with $\langle \cdot ; \cdot \rangle$ the standard Euclidean scalar product and $\mathrm{Exp}[ \cdot]$ the expected value.
 \end{theorem}
 
 \begin{proof}
-    To be shown
+As $\langle \mathbf{w}; \mathbf{v} \rangle = |\mathbf{w}||\mathbf{v}|\cos [\sphericalangle(\mathbf{v}, \mathbf{w})]$ it is sufficient to look at the scalar product:
+\begin{align}
+\langle \mathbf{w}; \mathbf{v} \rangle &= \underbrace{R^2 (l, \mathrm{argmax}(\mathbf{x})) \mathrm{w}^T m}_{> 0}M \mathbf{v} \underbrace{=}_{\text{drop $R^2 m$ for simplicity}}\\
+&= - \mathbf{p}^T M \mathbf{x} + (M\mathbf{x})_{\mathrm{argmax}(\mathrm{x})} = \\
+&= - \sum_{i=1}^{N} p_i \left(x_i - \frac{1}{N-1}\sum_{\substack{ j=1 \\ j \neq i}}^N x_j\right) + x_{\mathrm{argmax}(\mathbf{x})} - \frac{1}{N-1} \sum_{\substack{ j=1 \\ j \neq \mathrm{argmax}(\mathbf{x})}}^N x_j
+\end{align}
+
+Observe that:
+\begin{align}
+x_i &\leq x_{\mathrm{argmax}(\mathbf{x})} \\
+\frac{1}{N-1}\sum_{\substack{ j=1 \\ j \neq i}}^N x_j &\geq \frac{1}{N-1} \sum_{\substack{ j=1 \\ j \neq \mathrm{argmax}(\mathbf{x})}}^N x_j \\
+\sum_{i=1}^{N} p_i &= 1
+\end{align}
+
+Therefore:
+
+\begin{align}
+\langle \mathbf{w}; \mathbf{v} \rangle &= - \sum_{i=1}^{N} p_i \left(x_i - \frac{1}{N-1}\sum_{\substack{ j=1 \\ j \neq i}}^N x_j\right) + x_{\mathrm{argmax}(\mathbf{x})} - \frac{1}{N-1} \sum_{\substack{ j=1 \\ j \neq \mathrm{argmax}(\mathbf{x})}}^N x_j \geq \\
+& \geq - \sum_{i=1}^{N} p_i \left(x_{\mathrm{argmax}(\mathbf{x})} - \frac{1}{N-1}\sum_{\substack{ j=1 \\ j \neq {\mathrm{argmax}(\mathbf{x})}}}^N x_j\right) + x_{\mathrm{argmax}(\mathbf{x})} - \frac{1}{N-1} \sum_{\substack{ j=1 \\ j \neq \mathrm{argmax}(\mathbf{x})}}^N x_j \geq \\
+& \geq 0
+\end{align}
+
 \end{proof}
 
 \begin{remark}
     \begin{itemize}
         \item
-            The model works in software simulations, and I also have a strong gut feeling that this should work.
+            The proof is independent of the form of the reward function R and of the value of the matrix-diagonal $m$.
+            We keep them in the theorem because of the physiological consequence of the results.
+            The Hill-climbing property is independent of the scaling factor of the lateral connections $m$ and of the exact form of the global neuromodulator $R$.
         \item
-            For $N=2$ the theorem is trivial. This suggests a solution via mathematical induction.
+            The proof of the theorem did not use the exact form of action probabilities,only that action probabilities are not pathological that is $0 \leq p_i \leq 1 \; \forall i$.
+            This means that an exact model of the action distribution is not necessary for Hill-climbing.
+            This is already a hint towards the robustness of the model, as it does not have to match the exact action-probabilities in a software or biological implementation.
+            The pathological cases are also intuitively unreasonable for learning: If a desired action has zero probability than it is impossible to learn it.
         \item
-            A key point in the theorem is the shape of the matrix $M$, that is:
+            A cornerstone of the proof is the structure of the matrix $M$. More precisely:
                 \begin{equation}
-                    \sum_{i,j=1}^{N} m_{ij}= 0
+                 (M\mathbf{x})_{\mathrm{argmax}(\mathbf{x})} \geq (M\mathbf{x})_i \quad \forall i \in \{ 1, \dots, N \}
                 \end{equation}
-            by definition. This forces the vector $v$ to a shape where is has to take both positive and negative values with $\sum_{i=1}^{N} v_i = 0$
-        \item
-            The random variables $x_i$ represent the activation of neurons.
-            In biology the activation of a neuron can only be non-negative.
-            This could be assumed in the theorem if this aids the proof.
-        \item
-            The term
-                \begin{equation}
-                    \frac{\exp(\frac{\alpha_i}{\sigma})}{\sum_{k=1}^{N}\exp(\frac{\alpha_k}{\sigma})}
-                \end{equation}
-            approximates the probability of the possible actions as one would implement in a classical policy gradient algorithm with softmax action-selection.
+First, this cornerstone property can be the basis of a later robustness
+analysis of the model if the lateral connections have fixed-pattern noise,
+that is $M \rightarrow M + \eta$, where $\eta$ represents a random matrix representing
+the heterogeneity of the lateral connections. Second, the learning requires
+non-zero stochasticity, here $\sigma > 0$. Otherwise the learning stalls and stops
+when for example the alpha value of two actions is similar $\alpha_i = \alpha_j$ , the
+error on these two actions can disappear. These observations lead to the
+idea that action selection randomness might help to compensate for the
+problems introduced by the fixed-pattern noise on the lateral connections.
+The fixed-pattern noise introduces regions in the phase space ($\alpha$ space
+here) where the gradient does not point into the same direction as the
+policy gradient. But the action selection noise could make the learning jump over these erroneous regions and the learning can proceed.
+
     \end{itemize}
 \end{remark}
 

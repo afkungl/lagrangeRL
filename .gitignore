@@ -1,3 +1,6 @@
 *.pyc
 *.txt
 *.png
+*.pdf
+*.log
+*.json
