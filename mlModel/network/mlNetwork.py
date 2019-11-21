@@ -491,27 +491,34 @@ class mlNetworkWtaVerifyBp(mlNetworkWta):
 
         # forward pass of action selection
         self.activities = []
+        self.memPots = []
         for index, w in enumerate(self.wArrayTf):
+
+            # get the appropriate input
             if index == 0:
                 prevAct = self.inputPh
             else:
                 prevAct = self.activities[index - 1]
+
+            # calculate the next layer activity (firing rate)
+            # based on the previous activity level
             if index == len(self.wArrayTf) - 1:
                 #randomCont = tf.random.normal([self.layers[-1]],
                 #                              0.,
                 #                              self.noiseSigma)
-                self.lastLayerU = tfAux.tf_mat_vec_dot(
+                self.memPots.append(tfAux.tf_mat_vec_dot(
                                 w,
-                                prevAct) + 5.0 + tf.random.normal(
+                                prevAct) + 3.0 + tf.random.normal(
                                                     [self.layers[-1]],
                                                     0.,
-                                                    self.noiseSigma)
+                                                    self.noiseSigma))
                 self.activities.append(
-                        self.actFunc(self.lastLayerU))
+                        self.actFunc(self.memPots[-1]))
             else:
-                self.activities.append(self.actFunc(tfAux.tf_mat_vec_dot(
+                self.memPots.append(tfAux.tf_mat_vec_dot(
                                                     w,
-                                                    prevAct)))
+                                                    prevAct))
+                self.activities.append(self.actFunc(self.memPots[-1]))
 
         # get action vector
         self.actionVector = tf.Variable(np.zeros(self.layers[-1]),
@@ -541,29 +548,49 @@ class mlNetworkWtaVerifyBp(mlNetworkWta):
         self.modulatorTf = self.R - tf.math.maximum(0., self.meanReward)
 
         # get the gradients
-        with tf.control_dependencies([self.getActionVectorTf, self.R, self.modulatorTf]):
+        with tf.control_dependencies([self.getActionVectorTf, self.R, self.modulatorTf] + self.memPots + self.activities):
             self.wgradArr = []
             for wTf in self.wArrayTf:
                 self.wgradArr.append(tf.stack(tfAux.jacobian(self.activities[-1],
                                                          wTf)))
-
-            # do the homoestatic update
-            self.homUpdate = (tf.nn.relu(self.uLow - self.lastLayerU) - tf.nn.relu(self.lastLayerU - self.uHigh))
-            if len(self.layers) == 2:
-                prevAct = self.inputPh
-            else:
-                prevAct = self.activities[-2]
-            self.updateH = self.wArrayTf[-1].assign(self.wArrayTf[-1] + 
-                            self.learningRateH * tfTools.tf_outer_product(
-                                                    self.homUpdate,
-                                                    prevAct))
 
             # tensors to update the parameters
             self.updParArray = []
             for index, wTf in enumerate(self.wArrayTf):
                 if index == len(self.wArrayTf) - 1:
                     continue
-                self.updParArray.append(self.getUpdateParameters(index, wTf))
+                self.updParArray.append(
+                            self.getUpdateParameters(index, wTf))
+
+            # do the homoestatic update
+            #self.homUpdate = (tf.nn.relu(self.uLow - self.memPots[-1]) - tf.nn.relu(self.memPots[-1] - self.uHigh))
+            if len(self.layers) == 2:
+                prevAct = self.inputPh
+            else:
+                prevAct = self.activities[-2]
+            with tf.control_dependencies(self.updParArray):
+                self.updateH = []
+                self.homRule = []
+                self.homTarget = []
+                for (index, wTf) in enumerate(self.wArrayTf):
+                    if index == 0:
+                        prevAct = self.inputPh
+                    else:
+                        prevAct = self.activities[index - 1]
+
+                    # Homeostatis at the border
+                    self.homRule.append(tf.nn.relu(self.uLow - self.memPots[index]) - tf.nn.relu(self.memPots[index] - self.uHigh))
+
+                    # Homeostatis towards the middle
+                    self.homTarget.append(self.uTarget - self.memPots[index])
+                    self.updateH.append(wTf.assign(wTf + 
+                        self.learningRateH * tfTools.tf_outer_product(
+                                                self.homRule[-1],
+                                                prevAct) +
+                        self.learningRateHt * tf.math.abs(self.modulatorTf) * 
+                        tfTools.tf_outer_product(self.homTarget[-1],
+                                                 prevAct)
+                                                ))
 
         # start the session
         self.sess = tf.Session()

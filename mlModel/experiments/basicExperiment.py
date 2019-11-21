@@ -599,7 +599,9 @@ class expMlWnaVerifyBp(expMlWna):
         self.networkTf.setNoiseSigma(self.params['noiseSigma'])
         self.networkTf.setHomeostaticParams(self.params['learningRateH'],
                                             self.params['uLow'],
-                                            self.params['uHigh'])
+                                            self.params['uHigh'],
+                                            self.params['learningRateHt'],
+                                            self.params['uTarget'])
         self.networkTf.initialize()
 
         # Set up the data handler
