@@ -112,10 +112,25 @@ class expExactLagrange(object):
         if 'logLevel' in self.params:
             coloredlogs.install(level=self.params['logLevel'])
 
-    def runSimulation(self, startFrom=0):
+    def runSimulation(self, startFrom=0, testing=False):
+        """
+            Args:
+            startFrom: start from a certain iteration number, relevant for continuing from checkpoint
+            testing: if True then confusion matrix is gathered
+        """
 
-        for index in range(1 + startFrom, self.Niter + 1):
-            self.singleIteration(index)
+        if testing:
+            nLabels =  len(self.params['labels'])
+            confMatrix = np.zeros((nLabels, nLabels))
+            nTestExamples = self.myData.nTest
+            iterRange = range(nTestExamples)
+        else:
+            iterRange = range(1 + startFrom, self.Niter + 1)
+
+        for index in iterRange:
+            [activityLastLayer, trueLabel] = self.singleIteration(
+                                                        index,
+                                                        testing = True)
             if index % self.reportFrequency == 0:
                 self.plotFinalReport()
                 self.saveResults()
@@ -123,7 +138,22 @@ class expExactLagrange(object):
                 self.saveCheckpoint(index)
                 self.logger.info('Checkpoint created at {}'.format(index))
 
-        self.plotFinalReport()
+            if testing:
+                actionIndex = np.argmax(activityLastLayer)
+                labelIndex = np.argmax(trueLabel)
+                self.logger.debug('Activity in the last layer: {}'.format(activityLastLayer))
+                self.logger.debug('Action index: {}'.format(actionIndex))
+                self.logger.debug('True label vector: {}'.format(trueLabel))
+                self.logger.debug('True label Index: {}',format(labelIndex))
+                confMatrix[labelIndex, actionIndex] += 1
+                self.logger.debug('The current confusion matrix: {}'.format(confMatrix))
+                self.logger.debug('Test example {} evaluated'.format(index))
+
+        if not testing:
+            self.plotFinalReport()
+
+        self.logger.debug('The reported conf matrix is: {}'.format(confMatrix))
+        return confMatrix
 
     def setUpNetwork(self):
         """
@@ -252,10 +282,13 @@ class expExactLagrange(object):
         else:
             os.makedirs('Output')
 
-    def singleIteration(self, index=0):
+    def singleIteration(self, index=0, testing=False):
 
         # get an example as input
-        inputExample = self.myData.getRandomTestExample()[0]
+        if testing:
+            inputExample = self.myData.getNextTestExample()[0]
+        else:
+            inputExample = self.myData.getRandomTestExample()[0]
         self.Input.value[:self.layers[0]] = inputExample['data']
 
         # run the simulation before the ramp downstart
@@ -324,6 +357,8 @@ class expExactLagrange(object):
         self.logger.debug("The used WTA network {}".format(self.simClass.onlyWta))
         self.logger.debug("The used bias vector is {}".format(
                                 self.simClass.getBias()))
+
+        return [output, inputExample['label']]
 
     def plotReport(self, index, output, example):
 
@@ -472,3 +507,33 @@ class expExactLagrange(object):
 
         # continue
         self.runSimulation(startFrom = self.currIter)
+
+    def runTesting(self, testSet):
+
+        ################################
+        ## Set up the network again
+        self.initLogging()
+        self.setUpNetwork()
+        self.setUpInput()
+        self.setUpActivationFunction()
+        self.setUpDataHandler()
+        self.setUpRewardScheme()
+        self.setUpEmptyTarget()
+        loadW = np.ma.masked_array(self.loadWWta + self.loadNoWta,
+                                   self.simClass.W.mask)
+        self.simClass.W = loadW
+        self.simClass.calcWnoWta(self.layers[-1])
+        self.simClass.calcOnlyWta(self.layers[-1])
+        self.simClass.initCompGraph()
+        self.makeOutputFolder(overwriteOutput=True)
+
+        # Load the test set into the data handler
+        self.myData.pathTest = testSet
+        self.myData.loadTestSet()
+
+        ################################
+
+        # continue
+        confMatrix = self.runSimulation(testing = True)
+
+        return confMatrix
