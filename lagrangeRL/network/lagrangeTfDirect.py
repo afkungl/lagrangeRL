@@ -174,8 +174,7 @@ class lagrangeTfDirect(lagrangeTfOptimized):
             
             self.updateRegEligibility = self.regEligibility.assign(
                 (self.regEligibility + self.timeStep * tfTools.tf_outer_product(
-                    tf.nn.relu(self.uLow - self.u) -
-                    tf.nn.relu(self.u - self.uHigh),
+                    tf.nn.relu(self.uTarget - self.u),
                     self.rho)) * tf.exp(-1. * self.timeStep / self.tauEligibility)
             )
 
@@ -189,8 +188,8 @@ class lagrangeTfDirect(lagrangeTfOptimized):
         ## Node to update the weights of the network ##
         ###############################################
 
-        self.updateW = self.wTfNoWta.assign(self.wTfNoWta + (self.learningRate / self.tauEligibility) * (
-            self.modulator * self.eligibility * self.Wplastic + self.kappaDecay * self.regEligibility * self.noWnaMask))
+        self.updateW = self.wTfNoWta.assign(self.wTfNoWta + ( 1. / self.tauEligibility) * (
+            self.modulator * self.learningRate * self.eligibility * self.Wplastic + tf.math.abs(self.modulator) * self.learningRateH * self.regEligibility * self.noWnaMask))
 
         ############################################
         ## Outputs for debugging                  ##
@@ -238,3 +237,11 @@ class lagrangeTfDirect(lagrangeTfOptimized):
         """
 
         return self.sess.run(self.wTfNoWta)
+
+    def setRegParameters(self, uTarget, learningRateH):
+        """
+        Set the regularization parameters
+        """
+
+        self.uTarget = uTarget
+        self.learningRateH = learningRateH

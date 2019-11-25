@@ -60,9 +60,8 @@ class expExactLagrange(object):
         self.noiseAutoCorrTime = params['noiseAutoCorrTime']
 
         # regularization parameters
-        self.uLow = params['uLow']
-        self.uHigh = params['uHigh']
-        self.kappaDecay = params['kappaDecay']
+        self.uTarget = params['uTarget']
+        self.learningRateH = params['learningRateH']
 
         # cost weighting parameters
         self.alphaWna = params['alphaWna']
@@ -187,9 +186,8 @@ class expExactLagrange(object):
         wMaxFixed = np.zeros((self.N, self.N))
         wMaxFixed[-self.layers[-1]:, -self.layers[-1]:] = 1
         self.simClass.setFixedSynapseMask(wMaxFixed.astype(bool))
-        self.simClass.setRegParameters(self.uLow,
-                                       self.uHigh,
-                                       self.kappaDecay)
+        self.simClass.setRegParameters(self.uTarget,
+                                       self.learningRateH)
         self.simClass.setNoiseParameter(0.,
                                         self.noiseStd,
                                         self.noiseAutoCorrTime)
