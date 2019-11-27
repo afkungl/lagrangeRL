@@ -129,7 +129,7 @@ class expExactLagrange(object):
         for index in iterRange:
             [activityLastLayer, trueLabel] = self.singleIteration(
                                                         index,
-                                                        testing = True)
+                                                        testing = testing)
             if index % self.reportFrequency == 0:
                 self.plotFinalReport()
                 self.saveResults()
