@@ -34,6 +34,8 @@ class lagrangeTfDirect(lagrangeTfOptimized):
             np.zeros((self.N, self.N)), dtype=self.dtype)
         self.regEligibility = tf.Variable(
             np.zeros((self.N, self.N)), dtype=self.dtype)
+        self.regEligibilityBorder = tf.Variable(
+            np.zeros((self.N, self.N)), dtype=self.dtype)
         self.wTfNoWta = tf.Variable(self.WnoWta, dtype=self.dtype)
         self.wTfOnlyWta = tf.Variable(self.onlyWta, dtype=self.dtype)
         inputMask = self.input.getInput(0.)[2]
@@ -178,10 +180,17 @@ class lagrangeTfDirect(lagrangeTfOptimized):
                     self.rho)) * tf.exp(-1. * self.timeStep / self.tauEligibility)
             )
 
+            self.updateRegEligibilityBorder = self.regEligibilityBorder.assign(
+                (self.regEligibilityBorder + self.timeStep * tfTools.tf_outer_product(
+                    tf.nn.relu(self.uLow - self.u) -
+                    tf.nn.relu(self.u - self.uHigh),
+                    self.rho)) * tf.exp(-1. * self.timeStep / self.tauEligibility)
+            )
+
             #self.applyMembranePot = tf.scatter_update(self.u, np.arange(
             #    nInput, nFull), tf.slice(self.u, [nInput], [-1]) + self.timeStep * tf.slice(uDiff, [nInput], [-1]))
 
-        with tf.control_dependencies([saveOldUDot, updateLowPassActivity, self.eligNowUpdate, errorUpdate, self.updateEligiblity, self.updateRegEligibility]):
+        with tf.control_dependencies([saveOldUDot, updateLowPassActivity, self.eligNowUpdate, errorUpdate, self.updateEligiblity, self.updateRegEligibility, self.updateRegEligibilityBorder]):
             self.applyMembranePot = self.u.assign(self.u + self.timeStep * uDiff)
 
         ###############################################
@@ -189,7 +198,7 @@ class lagrangeTfDirect(lagrangeTfOptimized):
         ###############################################
 
         self.updateW = self.wTfNoWta.assign(self.wTfNoWta + ( 1. / self.tauEligibility) * (
-            self.modulator * self.learningRate * self.eligibility * self.Wplastic + tf.math.abs(self.modulator) * self.learningRateH * self.regEligibility * self.noWnaMask))
+            self.modulator * self.learningRate * self.eligibility * self.Wplastic + tf.math.abs(self.modulator) * self.learningRateH * self.regEligibility * self.noWnaMask + self.learningRateB * self.regEligibilityBorder * self.Wplastic))
 
         ############################################
         ## Outputs for debugging                  ##
@@ -238,10 +247,14 @@ class lagrangeTfDirect(lagrangeTfOptimized):
 
         return self.sess.run(self.wTfNoWta)
 
-    def setRegParameters(self, uTarget, learningRateH):
+    def setRegParameters(self, uTarget, learningRateH,
+                         uLow, uHigh, learningRateB):
         """
         Set the regularization parameters
         """
 
         self.uTarget = uTarget
         self.learningRateH = learningRateH
+        self.uLow = uLow
+        self.uHigh = uHigh
+        self.learningRateB = learningRateB

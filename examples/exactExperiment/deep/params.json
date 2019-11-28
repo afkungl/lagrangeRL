@@ -22,11 +22,14 @@
 	"noiseAutoCorrTime": 30.0,
 	"uLow": -1.25,
 	"uHigh": 1.25,
-	"kappaDecay": 0.5,
+	"learningRateB": 0.003,
+	"uTarget": 1.0,
+	"learningRateH": 0.001,
 	"logLevel": "DEBUG",
 	"alphaWna": 1.0,
-	"alphaNoise": 0.3,
-	"beta": 0.1,
-        "reportFrequency": 50,
-        "randomSeed": 4242424242
+	"alphaNoise": 1.0,
+	"beta": 0.01,
+        "reportFrequency": 10,
+        "randomSeed": 4242424242,
+	"saveOnlyReward": false
 }
