@@ -58,9 +58,11 @@ class expExactLagrangeVBackprop(expExactLagrange):
         wMaxFixed = np.zeros((self.N, self.N))
         wMaxFixed[-self.layers[-1]:, -self.layers[-1]:] = 1
         self.simClass.setFixedSynapseMask(wMaxFixed.astype(bool))
-        self.simClass.setRegParameters(self.uLow,
+        self.simClass.setRegParameters(self.uTarget,
+                                       self.learningRateH,
+                                       self.uLow,
                                        self.uHigh,
-                                       self.kappaDecay)
+                                       self.learningRateB)
         self.simClass.setNoiseParameter(0.,
                                         self.noiseStd,
                                         self.noiseAutoCorrTime)

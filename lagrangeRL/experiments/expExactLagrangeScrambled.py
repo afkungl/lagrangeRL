@@ -64,7 +64,9 @@ class expExactLagrangeScrambled(expExactLagrange):
         # regularization parameters
         self.uLow = params['uLow']
         self.uHigh = params['uHigh']
-        self.kappaDecay = params['kappaDecay']
+        self.learningRateB = params['learningRateB']
+        self.uTarget = params['uTarget']
+        self.learningRateH = params['learningRateH']
 
         # cost weighting parameters
         self.alphaWna = params['alphaWna']

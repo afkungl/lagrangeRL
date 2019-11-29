@@ -198,7 +198,7 @@ class lagrangeTfDirect(lagrangeTfOptimized):
         ###############################################
 
         self.updateW = self.wTfNoWta.assign(self.wTfNoWta + ( 1. / self.tauEligibility) * (
-            self.modulator * self.learningRate * self.eligibility * self.Wplastic + tf.math.abs(self.modulator) * self.learningRateH * self.regEligibility * self.noWnaMask + self.learningRateB * self.regEligibilityBorder * self.Wplastic))
+            self.modulator * self.learningRate * self.eligibility * self.Wplastic + tf.math.abs(self.modulator) * self.learningRateH * self.regEligibility * self.noWnaMask + self.learningRateB * self.regEligibilityBorder * self.wNoWtaMask))
 
         ############################################
         ## Outputs for debugging                  ##

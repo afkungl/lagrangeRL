@@ -17,14 +17,17 @@ class expExactLagrangeDelay(expExactLagrange):
         The reward arrives delayed by one trial
     """
 
-    def singleIteration(self, index=0):
+    def singleIteration(self, index=0, testing=False):
 
         # The od reward is assumed to be zero at the first iteration
         if index == 1:
             self.oldReward = 0
 
         # get an example as input
-        inputExample = self.myData.getRandomTestExample()[0]
+        if testing:
+            inputExample = self.myData.getNextTestExample()[0]
+        else:
+            inputExample = self.myData.getRandomTestExample()[0]
         self.Input.value[:self.layers[0]] = inputExample['data']
 
         # run the simulation before the ramp downstart
@@ -93,3 +96,5 @@ class expExactLagrangeDelay(expExactLagrange):
         self.logger.debug("The used WTA network {}".format(self.simClass.onlyWta))
         self.logger.debug("The used bias vector is {}".format(
                                 self.simClass.getBias()))
+
+        return [output, inputExample['label']]
