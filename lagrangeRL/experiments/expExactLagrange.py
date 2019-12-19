@@ -488,6 +488,9 @@ class expExactLagrange(object):
         # Load current iteration
         self.currIter = loadDict['currentIter']
 
+        # set flag loaded from checkpoint:
+        self.loadedFromCheckpoint = True
+
     def continueFromCheckpoint(self):
 
         ################################
