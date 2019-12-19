@@ -23,7 +23,7 @@ class expExactLagrangeDelay(expExactLagrange):
         if (index == 1) or 'loadedFromCheckpoint' in self.__dict__.keys():
             self.oldReward = 0
         if 'loadedFromCheckpoint' in self.__dict__.keys():
-            if self.loadedFromCheckpoint = True:
+            if self.loadedFromCheckpoint == True:
                 self.oldReward = 0
                 self.loadedFromCheckpoint = False
 
