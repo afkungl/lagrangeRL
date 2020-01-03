@@ -194,6 +194,8 @@ class mlNetworkWta(mlNetwork):
 
     """
 
+    fixedPatternNoiseSigma = 0.0
+
     def _createComputationalGraph(self):
         """
             Create the computational graph ready to start
@@ -216,7 +218,14 @@ class mlNetworkWta(mlNetwork):
         # winner nudges all circuit
         nNeurons = self.layers[-1]
         wnaW = np.ones((nNeurons, nNeurons)) * (-1.)/(nNeurons - 1.)
-        np.fill_diagonal(wnaW, 1.) 
+        np.fill_diagonal(wnaW, 1.)
+        if self.fixedPatternNoiseSigma != 0.0:
+            relNoise = 1. + np.random.normal(0.0,
+                                            self.fixedPatternNoiseSigma,
+                                            size=(nNeurons,nNeurons))
+            relNoise = np.maximum(relNoise, 0.0)
+            wnaW = wnaW * relNoise
+            self.logger.info("The wna matrix is now noised")
         self.wnaTf = tf.Variable(wnaW, dtype=self.dtype)
 
         # network array
@@ -422,6 +431,11 @@ class mlNetworkWta(mlNetwork):
                                 self.actionVectorPh: actionVector,
                                 self.inputPh: inputVector,
                                 self.learningRateTf: learningRate})
+
+
+    def set_fixedPatternNoise(self, value):
+
+        self.fixedPatternNoiseSigma = value
 
 
 

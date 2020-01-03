@@ -373,6 +373,11 @@ class expMlWna(basicExperiment):
         np.random.seed(self.params['randomSeed'])
         tf.set_random_seed(self.params['randomSeed'])
 
+        if 'fixedPatternNoiseSigma' in self.params:
+            self.fixedPatternNoiseSigma = self.params['fixedPatternNoiseSigma']
+        else:
+            self.fixedPatternNoiseSigma = 0.0
+
         # checkpointing is turned off by default
         self.checkpointing = False
 
@@ -389,6 +394,8 @@ class expMlWna(basicExperiment):
                                             self.params['uHigh'],
                                             self.params['learningRateHt'],
                                             self.params['uTarget'])
+        if 'fixedPatternNoiseSigma' in self.params:
+            self.networkTf.set_fixedPatternNoise(self.fixedPatternNoiseSigma)
         self.networkTf.initialize()
 
         # Set up the data handler
