@@ -83,6 +83,12 @@ class expExactLagrange(object):
         else:
             self.saveOnlyReward = False
 
+        # save only reward as a default parameter
+        if 'fixedPatternNoiseSigma' in params:
+            self.fixedPatternNoiseSigma = params['fixedPatternNoiseSigma']
+        else:
+            self.fixedPatternNoiseSigma = 0.0
+
         # Set the random seed for numpy and tensorflow
         np.random.seed(params['randomSeed'])
         tf.set_random_seed(params['randomSeed'])
@@ -168,7 +174,8 @@ class expExactLagrange(object):
             self.wtaStrength,
             offset=self.initWeightMean,
             noiseMagnitude=self.initWeightWidth,
-            noWtaMask=True)
+            noWtaMask=True,
+            fixedPatternNoiseSigma=self.fixedPatternNoiseSigma)
         self.logger.debug('The w matrix as it comes from the tool function: {}'.format(self.W.data))
         # Lagrange network
         self.simClass = lagrangeRL.network.lagrangeTfDirect()

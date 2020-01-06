@@ -33,7 +33,7 @@ def feedForward(layers):
 
 def feedForwardWtaReadout(layers, wtaStrength=1., offset=0.,
                           noiseMagnitude=1., inhStrength=None,
-                          noWtaMask=False):
+                          noWtaMask=False, fixedPatternNoiseSigma=0.0):
     """
         Create a the connection matrix as a masked matrix of a feedforward network with a winner-take-all network in the last layer.
         The network uses He initialization (He et al IEEE Comp Vision 2015).
@@ -80,6 +80,11 @@ def feedForwardWtaReadout(layers, wtaStrength=1., offset=0.,
     Nlast = layers[-1]
     wta = -1.*np.ones((Nlast, Nlast))*inhW
     np.fill_diagonal(wta, wtaStrength)
+    relNoise = 1. + np.random.normal(0.0,
+                                     fixedPatternNoiseSigma,
+                                     size=(Nlast,Nlast))
+    relNoise = np.maximum(relNoise, 0.0)
+    wta = wta * relNoise
     if not noWtaMask:
         WMask[-Nlast:,-Nlast:] = 0
     W[-Nlast:, -Nlast:] = wta
