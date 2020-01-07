@@ -20,7 +20,7 @@ class expExactLagrangeDelay(expExactLagrange):
     def singleIteration(self, index=0, testing=False):
 
         # The od reward is assumed to be zero at the first iteration
-        if (index == 1) or 'loadedFromCheckpoint' in self.__dict__.keys():
+        if index == 1:
             self.oldReward = 0
         if 'loadedFromCheckpoint' in self.__dict__.keys():
             if self.loadedFromCheckpoint == True:
