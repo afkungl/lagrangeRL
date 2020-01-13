@@ -103,12 +103,12 @@ class expExactLagrangeScrambled(expExactLagrange):
 
         self.params = params
 
-    def runSimulation(self):
+    def runSimulation(self, startFrom=1):
 
         # fill up the event array with change input events
         self.initEvents()
         self.createInputEvent(0.0)
-        counter = 1
+        counter = startFrom
         counterReward = 0
 
         while self.events:
@@ -135,6 +135,9 @@ class expExactLagrangeScrambled(expExactLagrange):
                                       counter < self.Niter)
                 counter += 1
                 self.logger.debug('I applied changeInput')
+                if self.checkpointing and (counter % self.checkPerIter == 0):
+                    self.saveCheckpoint(counter)
+                    self.logger.info('Checkpoint created at {}'.format(counter))
             elif eventType == 'readOut':
                 self.eventReadOut(self.simClass.T,
                                   nextEvent[2])
