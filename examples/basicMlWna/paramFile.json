@@ -1,6 +1,6 @@
 {
     "layers": [100,100,3],
-    "learningRate": 0.003,
+    "learningRate": 0.001,
     "labels": [0,1,2],
     "gammaReward": 0.9,
     "Niter": 3000,
@@ -11,7 +11,10 @@
     "reportFreq": 50000,
     "randomSeed": 41311232,
     "noiseSigma": 0.4,
-    "learningRateH": 0.1,
+    "learningRateH": 0.001,
+    "learningRateHt": 0.0,
     "uLow": -2.0,
-    "uHigh": 6.0
+    "uHigh": 6.0,
+    "uTarget": 4.0,
+    "fixedPatternNoiseSigma": 0.2
 }

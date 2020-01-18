@@ -897,8 +897,11 @@ class mlNetworkDirectNodePert(mlNetwork):
         with tf.control_dependencies([self.getActionVectorTf, self.R, self.modulatorTf] + self.memPots + self.activities):
             self.wgradArr = []
             for wTf in self.wArrayTf:
-                self.wgradArr.append(tf.stack(tfAux.jacobian(self.activities[-1],
-                                                         wTf)))
+                #self.wgradArr.append(tf.stack(tfAux.jacobian(self.activities[-1],
+                #                                         wTf)))
+                self.wgradArr.append(tf.stack(tfAux.jacobian(
+                                        self.memPots[-1] + self.perturbation,
+                                        wTf)))
 
             # tensors to update the parameters
             self.updParArray = []
@@ -914,23 +917,36 @@ class mlNetworkDirectNodePert(mlNetwork):
             with tf.control_dependencies(self.updParArray):
                 self.updateH = []
                 self.homRule = []
+                self.homTarget = []
                 for (index, wTf) in enumerate(self.wArrayTf):
                     if index == 0:
                         prevAct = self.inputPh
                     else:
                         prevAct = self.activities[index - 1]
-                    if True:
-                        self.homRule.append(tf.nn.relu(self.uLow - self.memPots[index]) - tf.nn.relu(self.memPots[index] - self.uHigh))
-                        self.updateH.append(wTf.assign(wTf + 
-                            self.learningRateH * tfTools.tf_outer_product(
-                                                    self.homRule[-1],
-                                                    prevAct)))
+
+                    # Homeostatis at the border
+                    self.homRule.append(tf.nn.relu(self.uLow - self.memPots[index]) - tf.nn.relu(self.memPots[index] - self.uHigh))
+
+                    # Homeostatis towards the middle
+                    self.homTarget.append(self.uTarget - self.memPots[index])
+                    self.updateH.append(wTf.assign(wTf + 
+                        self.learningRateH * tfTools.tf_outer_product(
+                                                self.homRule[-1],
+                                                prevAct) +
+                        self.learningRateHt * tf.math.abs(self.modulatorTf) * 
+                        tfTools.tf_outer_product(self.homTarget[-1],
+                                                 prevAct)
+                                                ))
 
         # start the session
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
 
     def doOneIteration(self, inputData, trueLabel, learningRate, meanR):
+
+        # new perturbation vector
+        pert = self.sess.run(self.perturbation)
+        self.logger.info('Current noise vector is {}'.format(pert))
 
         tensors = [self.R, self.getActionVectorTf, self.updateH] + self.updParArray + self.activities
         inputDict = {self.inputPh: inputData,
@@ -994,11 +1010,13 @@ class mlNetworkDirectNodePert(mlNetwork):
 
         self.noiseSigma = noiseSigma
 
-    def setHomeostaticParams(self, learningRateH, uLow, uHigh):
+    def setHomeostaticParams(self, learningRateH, uLow, uHigh, learningRateHt, uTarget):
 
         self.learningRateH = learningRateH
         self.uLow = uLow
         self.uHigh = uHigh
+        self.learningRateHt = learningRateHt
+        self.uTarget = uTarget
 
     def updateParameters(self,
                          inputVector,
@@ -1098,7 +1116,7 @@ class mlNetworkCombinedNodePert(mlNetwork):
                 #                              self.noiseSigma)
                 self.memPots.append(tfAux.tf_mat_vec_dot(
                                 w,
-                                prevAct) + 2.0)
+                                prevAct) + self.uTarget)
                 self.activities.append(
                         self.actFunc(self.memPots[-1]))
             else:
@@ -1140,11 +1158,14 @@ class mlNetworkCombinedNodePert(mlNetwork):
         self.modulatorTf = self.R - tf.math.maximum(0., self.meanReward)
 
         # get the gradients
-        with tf.control_dependencies([self.getActionVectorTf, self.R, self.modulatorTf] + self.memPots + self.activities):
+        with tf.control_dependencies([self.getActionVectorTf, self.R, self.modulatorTf, self.perturbation] + self.memPots + self.activities):
             self.wgradArr = []
             for wTf in self.wArrayTf:
-                self.wgradArr.append(tf.stack(tfAux.jacobian(self.activities[-1],
-                                                         wTf)))
+                #self.wgradArr.append(tf.stack(tfAux.jacobian(self.activities[-1],
+                #                                         wTf)))
+                self.wgradArr.append(tf.stack(tfAux.jacobian(
+                                        self.memPots[-1] + self.perturbation,
+                                        wTf)))
 
             # tensors to update the parameters
             self.updParArray = []
@@ -1160,23 +1181,39 @@ class mlNetworkCombinedNodePert(mlNetwork):
             with tf.control_dependencies(self.updParArray):
                 self.updateH = []
                 self.homRule = []
+                self.homTarget = []
                 for (index, wTf) in enumerate(self.wArrayTf):
                     if index == 0:
                         prevAct = self.inputPh
                     else:
                         prevAct = self.activities[index - 1]
-                    if True:
-                        self.homRule.append(tf.nn.relu(self.uLow - self.memPots[index]) - tf.nn.relu(self.memPots[index] - self.uHigh))
-                        self.updateH.append(wTf.assign(wTf + 
-                            self.learningRateH * tfTools.tf_outer_product(
-                                                    self.homRule[-1],
-                                                    prevAct)))
+
+                    # Homeostatis at the border
+                    self.homRule.append(tf.nn.relu(self.uLow - self.memPots[index]) - tf.nn.relu(self.memPots[index] - self.uHigh))
+
+                    # Homeostatis towards the middle
+                    self.homTarget.append(self.uTarget - self.memPots[index])
+
+                    # gather homeostatic rule
+                    self.updateH.append(wTf.assign(wTf + 
+                        self.learningRateH * tfTools.tf_outer_product(
+                                                self.homRule[-1],
+                                                prevAct) +
+                        self.learningRateHt * tf.math.abs(self.modulatorTf) * 
+                        tfTools.tf_outer_product(self.homTarget[-1],
+                                                 prevAct)
+                                                ))
 
         # start the session
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
 
     def doOneIteration(self, inputData, trueLabel, learningRate, meanR):
+
+
+        # new perturbation vector
+        pert = self.sess.run(self.perturbation)
+        self.logger.info('Current noise vector is {}'.format(pert))
 
         tensors = [self.R, self.getActionVectorTf, self.updateH] + self.updParArray + self.activities
         inputDict = {self.inputPh: inputData,
@@ -1228,34 +1265,40 @@ class mlNetworkCombinedNodePert(mlNetwork):
 
         self.beta = beta
 
+    def setKappa(self, kappa):
+
+        self.kappa = kappa
+
     def getUpdateParameters(self, index, wTf):
         '''
             Create a tensor to update the parameters in the connection matrices
         '''
 
-        eRl = tfAux.tf_mat_vec_dot(self.wnaTf, self.activities[-1])
-        eHom = (-1.) * self.memPots[-1]
-        eSelfPred = self.actFuncPrime(self.memPots[-1]) * \
+        eRl = tfAux.tf_mat_vec_dot(self.wnaTf, self.activities[-1]) * \
+                tfAux.homFunc(self.memPots[-1], self.uLow, self.uHigh, 0.2)
+        eHom = -1.* (1. - self.kappa) * self.memPots[-1]
+        eSelfPred = 1.0 * self.actFuncPrime(self.memPots[-1]) * \
                     tfAux.tf_mat_vec_dot(self.wnaTf, self.memPots[-1] - \
                     tfAux.tf_mat_vec_dot(self.wnaTf, self.activities[-1]))
 
-        with tf.control_dependencies(self.activities + [self.cleanActionVector, self.perturbation]):
-            return tf.assign(wTf,
+
+        return tf.assign(wTf,
                          wTf + self.learningRateTf * self.modulatorTf * tf.einsum('kij,k->ij',
-                                    self.wgradArr[index],
-                                    self.perturbation + 
-                                    self.beta * (eRl + eHom + eSelfPred))
+                                    self.wgradArr[index], 
+                                    (eRl + eHom + eSelfPred))
                         )
 
     def setNoiseSigma(self, noiseSigma):
 
         self.noiseSigma = noiseSigma
 
-    def setHomeostaticParams(self, learningRateH, uLow, uHigh):
+    def setHomeostaticParams(self, learningRateH, uLow, uHigh, learningRateHt, uTarget):
 
         self.learningRateH = learningRateH
         self.uLow = uLow
         self.uHigh = uHigh
+        self.learningRateHt = learningRateHt
+        self.uTarget = uTarget
 
     def updateParameters(self,
                          inputVector,

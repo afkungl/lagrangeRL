@@ -696,7 +696,9 @@ class expMlDirectNodePert(expMlWna):
         self.networkTf.setNoiseSigma(self.params['noiseSigma'])
         self.networkTf.setHomeostaticParams(self.params['learningRateH'],
                                             self.params['uLow'],
-                                            self.params['uHigh'])
+                                            self.params['uHigh'],
+                                            self.params['learningRateHt'],
+                                            self.params['uTarget'])
         self.networkTf.initialize()
 
         # Set up the data handler
@@ -721,7 +723,7 @@ class expMlDirectNodePert(expMlWna):
             self.meanRArrayClass[label] = [0]
         self.currentRArray = []
 
-class expMlCombinedNodePret(expMlWna):
+class expMlPreservedSynaptic(expMlWna):
     """
 
         Experiment identical to the basic Experiment but the last layer of weights is not updated
@@ -731,7 +733,8 @@ class expMlCombinedNodePret(expMlWna):
     def initializeExperiment(self):
 
         # Set up the network
-        self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
+        self.actFunc = activationFunctions.sigmoidTf(1.0)
+        #self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
         self.networkTf = mlNetwork.mlNetworkCombinedNodePert(
                                         self.params['layers'],
                                         self.actFunc.value,
@@ -740,8 +743,11 @@ class expMlCombinedNodePret(expMlWna):
         self.networkTf.setNoiseSigma(self.params['noiseSigma'])
         self.networkTf.setHomeostaticParams(self.params['learningRateH'],
                                             self.params['uLow'],
-                                            self.params['uHigh'])
-        self.networkTf.setBeta(self.params['beta'])
+                                            self.params['uHigh'],
+                                            self.params['learningRateHt'],
+                                            self.params['uTarget'])
+        #self.networkTf.setBeta(self.params['beta'])
+        self.networkTf.setKappa(self.params['kappa'])
         self.networkTf.initialize()
 
         # Set up the data handler
