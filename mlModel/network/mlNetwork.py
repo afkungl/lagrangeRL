@@ -1097,6 +1097,12 @@ class mlNetworkCombinedNodePert(mlNetwork):
         for w in self.wInits:
             self.wArrayTf.append(tf.Variable(w, dtype=self.dtype))
 
+        # get action vector
+        self.perturbation = tf.random.normal(
+            [self.layers[-1]],
+            0.,
+            self.noiseSigma)
+
         # forward pass of action selection
         self.activities = []
         self.memPots = []
@@ -1111,12 +1117,9 @@ class mlNetworkCombinedNodePert(mlNetwork):
             # calculate the next layer activity (firing rate)
             # based on the previous activity level
             if index == len(self.wArrayTf) - 1:
-                #randomCont = tf.random.normal([self.layers[-1]],
-                #                              0.,
-                #                              self.noiseSigma)
                 self.memPots.append(tfAux.tf_mat_vec_dot(
                                 w,
-                                prevAct) + self.uTarget)
+                                prevAct) + self.uTarget + self.perturbation)
                 self.activities.append(
                         self.actFunc(self.memPots[-1]))
             else:
@@ -1125,11 +1128,7 @@ class mlNetworkCombinedNodePert(mlNetwork):
                                                     prevAct))
                 self.activities.append(self.actFunc(self.memPots[-1]))
 
-        # get action vector
-        self.perturbation = tf.random.normal(
-            [self.layers[-1]],
-            0.,
-            self.noiseSigma)
+        
 
         self.actionVector = tf.Variable(np.zeros(self.layers[-1]),
                                         dtype=self.dtype)
@@ -1139,7 +1138,7 @@ class mlNetworkCombinedNodePert(mlNetwork):
                                         tf.zeros([self.layers[-1]]))
         with tf.control_dependencies(self.activities + [self.cleanActionVector, self.perturbation]):
             self.getAction = self.actionIndex.assign(
-                                tf.math.argmax(self.actFunc(self.memPots[-1] + self.perturbation)))
+                                tf.math.argmax(self.activities[-1]))
 
         with tf.control_dependencies(self.activities+ [self.getAction]):
             self.getActionVectorTf = tf.scatter_update(self.actionVector,
@@ -1161,10 +1160,8 @@ class mlNetworkCombinedNodePert(mlNetwork):
         with tf.control_dependencies([self.getActionVectorTf, self.R, self.modulatorTf, self.perturbation] + self.memPots + self.activities):
             self.wgradArr = []
             for wTf in self.wArrayTf:
-                #self.wgradArr.append(tf.stack(tfAux.jacobian(self.activities[-1],
-                #                                         wTf)))
                 self.wgradArr.append(tf.stack(tfAux.jacobian(
-                                        self.memPots[-1] + self.perturbation,
+                                        self.memPots[-1],
                                         wTf)))
 
             # tensors to update the parameters
@@ -1173,7 +1170,6 @@ class mlNetworkCombinedNodePert(mlNetwork):
                 self.updParArray.append(self.getUpdateParameters(index, wTf))
 
             # do the homoestatic update
-            #self.homUpdate = (tf.nn.relu(self.uLow - self.memPots[-1]) - tf.nn.relu(self.memPots[-1] - self.uHigh))
             if len(self.layers) == 2:
                 prevAct = self.inputPh
             else:
