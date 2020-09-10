@@ -862,10 +862,7 @@ class mlNetworkDirectNodePert(mlNetwork):
                 self.activities.append(self.actFunc(self.memPots[-1]))
 
         # get action vector
-        self.perturbation = tf.random.normal(
-            [self.layers[-1]],
-            0.,
-            self.noiseSigma)
+        self.perturbation = self.generate_perturbation()
 
         self.actionVector = tf.Variable(np.zeros(self.layers[-1]),
                                         dtype=self.dtype)
@@ -899,8 +896,11 @@ class mlNetworkDirectNodePert(mlNetwork):
             for wTf in self.wArrayTf:
                 #self.wgradArr.append(tf.stack(tfAux.jacobian(self.activities[-1],
                 #                                         wTf)))
+                #self.wgradArr.append(tf.stack(tfAux.jacobian(
+                #                        self.memPots[-1] + self.perturbation,
+                #                        wTf)))
                 self.wgradArr.append(tf.stack(tfAux.jacobian(
-                                        self.memPots[-1] + self.perturbation,
+                                        self.memPots[-1],
                                         wTf)))
 
             # tensors to update the parameters
@@ -942,11 +942,17 @@ class mlNetworkDirectNodePert(mlNetwork):
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
 
+    def generate_perturbation(self):
+        return tf.random.normal(
+                [self.layers[-1]],
+                0.,
+                self.noiseSigma)
+
     def doOneIteration(self, inputData, trueLabel, learningRate, meanR):
 
         # new perturbation vector
-        pert = self.sess.run(self.perturbation)
-        self.logger.info('Current noise vector is {}'.format(pert))
+        #pert = self.sess.run(self.perturbation)
+        #self.logger.info('Current noise vector is {}'.format(pert))
 
         tensors = [self.R, self.getActionVectorTf, self.updateH] + self.updParArray + self.activities
         inputDict = {self.inputPh: inputData,
@@ -1037,6 +1043,35 @@ class mlNetworkDirectNodePert(mlNetwork):
                                 self.actionVectorPh: actionVector,
                                 self.inputPh: inputVector,
                                 self.learningRateTf: learningRate})
+
+class mlNetworkComplexNodePert(mlNetworkDirectNodePert):
+    """
+    
+        This network implments a more complex node perturbation that was suggested by Walter
+
+    """
+
+    def __init__(self, layers, actFunc, actFuncPrime, dtype=tf.float32):
+        """ Constructor
+
+        Args:
+            layers: list withn the number of layers from the input to the
+                output layer.
+            actFunc: an activation function file
+            dtype: type to be used by tensorflow
+        """
+
+        self.layers = layers
+        self.actFunc = actFunc
+        self.actFuncPrime = actFuncPrime
+        self.dtype = tf.float32
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    def generate_perturbation(self):
+
+        error_term = tfTools.tf_mat_vec_dot(self.wnaTf, self.activities[-1]) + self.noiseSigma * tf.random.normal([self.layers[-1]], 0., 1) - self.memPots[-1]
+
+        return self.noiseSigma * tf.random.normal([self.layers[-1]], 0., 1) * (error_term - self.actFuncPrime(self.memPots[-1])) *tfTools.tf_mat_vec_dot(self.wnaTf, error_term)
 
 
 class mlNetworkCombinedNodePert(mlNetwork):
