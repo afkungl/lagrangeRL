@@ -1071,7 +1071,7 @@ class mlNetworkComplexNodePert(mlNetworkDirectNodePert):
 
         error_term = tfTools.tf_mat_vec_dot(self.wnaTf, self.activities[-1]) + self.noiseSigma * tf.random.normal([self.layers[-1]], 0., 1) - self.memPots[-1]
 
-        return self.noiseSigma * tf.random.normal([self.layers[-1]], 0., 1) * (error_term - self.actFuncPrime(self.memPots[-1])) *tfTools.tf_mat_vec_dot(self.wnaTf, error_term)
+        return self.noiseSigma * tf.math.sign(tf.random.normal([self.layers[-1]], 0., 1)) * (error_term - self.actFuncPrime(self.memPots[-1])) * tfTools.tf_mat_vec_dot(self.wnaTf, error_term)
 
 
 class mlNetworkCombinedNodePert(mlNetwork):
