@@ -723,6 +723,55 @@ class expMlDirectNodePert(expMlWna):
             self.meanRArrayClass[label] = [0]
         self.currentRArray = []
 
+class expMlComplexNodePert(expMlWna):
+    """
+
+        Experiment identical to the basic Experiment but the last layer of weights is not updated
+
+    """
+
+    def initializeExperiment(self):
+
+        # Set up the network
+        self.actFunc = activationFunctions.softReluTf(1., 0., 0.1)
+        self.networkTf = mlNetwork.mlNetworkComplexNodePert(
+                                        self.params['layers'],
+                                        self.actFunc.value,
+                                        self.actFunc.valuePrime)
+
+        # tf.nn.relu)
+        self.networkTf.setNoiseSigma(self.params['noiseSigma'])
+        self.networkTf.setHomeostaticParams(self.params['learningRateH'],
+                                            self.params['uLow'],
+                                            self.params['uHigh'],
+                                            self.params['learningRateHt'],
+                                            self.params['uTarget'])
+
+        self.networkTf.initialize()
+
+        # Set up the data handler
+        self.dataHandler = tools.dataHandler.dataHandlerMnist(
+            self.params['labels'],
+            self.params['dataSet'],
+            self.params['dataSet'])
+
+
+        self.dataHandler.loadTrainSet()
+
+        # Set up the reward scheme
+        self.rewardScheme = tools.rewardSchemes.maxClassification(
+            self.params['trueReward'],
+            self.params['falseReward'])
+
+        # Set up arrays and parameters to save the progress
+        self.meanR = 0
+        self.meanRArray = [0]
+        self.meanRArrayClass = {}
+        for label in self.params['labels']:
+            self.meanRArrayClass[label] = [0]
+        self.currentRArray = []
+
+
 class expMlPreservedSynaptic(expMlWna):
     """
 
